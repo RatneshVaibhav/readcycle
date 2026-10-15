@@ -1,0 +1,24 @@
+# One-node local Kubernetes cluster for ReadCycle (kind = Kubernetes in Docker).
+# Port 80 on this laptop belongs to Apache, so the ingress controller's 80/443 are
+# published on 8088/8443:  http://readcycle.localhost:8088
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: readcycle
+containerdConfigPatches:
+  # lets containerd read per-registry mirror settings from /etc/containerd/certs.d
+  - |-
+    [plugins."io.containerd.cri.v1.images".registry]
+      config_path = "/etc/containerd/certs.d"
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 8088
+      - containerPort: 443
+        hostPort: 8443

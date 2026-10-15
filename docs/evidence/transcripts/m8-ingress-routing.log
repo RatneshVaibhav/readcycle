@@ -1,0 +1,26 @@
+#CWD ~/readcycle
+$ kubectl describe ingress readcycle -n readcycle | sed -n "/^Rules/,/^Annotations/p" | head -7
+Rules:
+  Host                 Path  Backends
+  ----                 ----  --------
+  readcycle.localhost  
+                       /api   readcycle-backend:http (10.244.0.19:8000,10.244.0.21:8000)
+                       /      readcycle-frontend:http (10.244.0.18:8080,10.244.0.20:8080)
+Annotations:           meta.helm.sh/release-name: readcycle
+
+$ curl -s -o /dev/null -w "GET  /           -> HTTP %{http_code} %{content_type}  (frontend)\n" http://readcycle.localhost:8088/; curl -s -o /dev/null -w "GET  /api/books  -> HTTP %{http_code} %{content_type}  (backend)\n" http://readcycle.localhost:8088/api/books
+GET  /           -> HTTP 200 text/html  (frontend)
+GET  /api/books  -> HTTP 200 application/json  (backend)
+
+$ API=http://readcycle.localhost:8088/api; for b in "Operating System Concepts|Silberschatz, Galvin, Gagne|CS301|Ratnesh" "Computer Networks|Andrew S. Tanenbaum|CS305|Aditi" "Introduction to Algorithms|Cormen et al.|CS201|Kabir" "Database System Concepts|Korth, Sudarshan|CS301|Meera" "Linear Algebra Done Right|Sheldon Axler|MA102|Ishaan"; do IFS="|" read -r t a c o <<<"$b"; printf "POST /api/books  %-28s -> HTTP %s\n" "$t" "$(curl -s -o /dev/null -w "%{http_code}" -X POST $API/books -H "Content-Type: application/json" -d "{\"title\":\"$t\",\"author\":\"$a\",\"course_code\":\"$c\",\"owner_name\":\"$o\"}")"; done
+POST /api/books  Operating System Concepts    -> HTTP 201
+POST /api/books  Computer Networks            -> HTTP 201
+POST /api/books  Introduction to Algorithms   -> HTTP 201
+POST /api/books  Database System Concepts     -> HTTP 201
+POST /api/books  Linear Algebra Done Right    -> HTTP 201
+
+$ id() { curl -s "$API/books?q=$1" | jq ".[0].id"; }; printf "reserve  Computer Networks          -> HTTP %s\n" "$(curl -s -o /dev/null -w "%{http_code}" -X POST $API/books/$(id networks)/reserve -H "Content-Type: application/json" -d "{\"reserved_by\":\"Arjun\"}")"; printf "exchange Introduction to Algorithms -> HTTP %s\n" "$(curl -s -o /dev/null -w "%{http_code}" -X PUT $API/books/$(id algorithms) -H "Content-Type: application/json" -d "{\"status\":\"exchanged\"}")"; curl -s $API/books/stats | jq -c "{total, by_status}"
+reserve  Computer Networks          -> HTTP 200
+exchange Introduction to Algorithms -> HTTP 200
+{"total":5,"by_status":{"available":3,"reserved":1,"exchanged":1}}
+

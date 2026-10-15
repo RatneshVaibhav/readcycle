@@ -1,0 +1,52 @@
+#CWD ~/readcycle
+$ date +%T; monitoring/traffic.sh 240 1 > /tmp/readcycle-traffic.out 2>&1 & echo "traffic.sh started: 1 worker for 4 minutes (list, search, stats, 404s, create/reserve/delete)"
+23:26:22
+traffic.sh started: 1 worker for 4 minutes (list, search, stats, 404s, create/reserve/delete)
+
+$ pq() { curl -s http://prometheus.localhost:8088/api/v1/query --data-urlencode "query=$1" | jq -r ".data.result[] | \"\(.metric | del(.__name__) | to_entries | map(\"\(.key)=\(.value)\") | join(\",\"))  =>  \(.value[1])\""; }; until [ "$(pq "sum(rate(http_requests_total{namespace=\"readcycle\"}[1m])) > 1" | wc -l)" -ge 1 ]; do sleep 5; done; date +%T
+23:27:17
+
+$ pq "up{namespace=\"readcycle\"}" | sed -E "s/,(endpoint|job|service|namespace)=[^,]*//g"
+container=api,instance=10.244.0.19:8000,pod=readcycle-backend-6559677dbd-wbrzp
+container=api,instance=10.244.0.26:8000,pod=readcycle-backend-6559677dbd-pf44x
+container=api,instance=10.244.0.25:8000,pod=readcycle-backend-6559677dbd-lmhxf
+container=api,instance=10.244.0.21:8000,pod=readcycle-backend-6559677dbd-kdz6q
+
+$ pq "sum by (handler, method) (rate(http_requests_total{namespace=\"readcycle\"}[1m]))" | sort
+handler=/api/books/{book_id},method=DELETE  =>  0.1753422450385581
+handler=/api/books/{book_id},method=GET  =>  2.6301336755783717
+handler=/api/books/{book_id},method=PUT  =>  0
+handler=/api/books/{book_id}/reserve,method=POST  =>  0.3256355979287508
+handler=/api/books,method=GET  =>  6.587858635020112
+handler=/api/books,method=POST  =>  0.3005867057803853
+handler=/api/books/stats,method=GET  =>  2.9557692735071224
+
+$ pq "sum by (status) (rate(http_requests_total{namespace=\"readcycle\"}[1m]))"
+status=2xx  =>  10.34978165211014
+status=4xx  =>  2.6313004200280017
+
+$ for q in 0.50 0.95 0.99; do echo "p${q#0.} latency: $(pq "histogram_quantile($q, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace=\"readcycle\"}[2m])))" | sed "s/.*=> //") s"; done
+p50 latency:  0.005019379844961241 s
+p95 latency:  0.009536821705426357 s
+p99 latency:  0.009938372093023255 s
+
+$ curl -s http://prometheus.localhost:8088/api/v1/rules | jq -r ".data.groups[] | select(.name==\"readcycle.alerts\") | .rules[] | \"\(.name)  state=\(.state)  health=\(.health)\""
+ReadCycleBackendDown  state=inactive  health=ok
+ReadCycleDatabaseDown  state=inactive  health=ok
+ReadCycleHighErrorRate  state=inactive  health=ok
+ReadCycleHighLatency  state=inactive  health=ok
+
+$ until [ "$(kubectl get hpa readcycle-backend -n readcycle -o jsonpath="{.status.desiredReplicas}")" -gt 2 ]; do sleep 5; done; date +%T; kubectl get hpa -n readcycle; kubectl describe hpa readcycle-backend -n readcycle | grep SuccessfulRescale | tail -1 | cut -c1-150
+23:27:19
+NAME                REFERENCE                      TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+readcycle-backend   Deployment/readcycle-backend   cpu: 350%/70%   2         4         4          3m26s
+  Normal   SuccessfulRescale             27s                    horizontal-pod-autoscaler  New size: 4; reason: cpu resource utilization (percentage o
+
+$ kubectl rollout status deploy/readcycle-backend -n readcycle --timeout=240s; kubectl get pods -n readcycle -l app.kubernetes.io/component=backend
+deployment "readcycle-backend" successfully rolled out
+NAME                                 READY   STATUS    RESTARTS   AGE
+readcycle-backend-6559677dbd-kdz6q   1/1     Running   0          3m27s
+readcycle-backend-6559677dbd-lmhxf   1/1     Running   0          27s
+readcycle-backend-6559677dbd-pf44x   1/1     Running   0          27s
+readcycle-backend-6559677dbd-wbrzp   1/1     Running   0          3m27s
+

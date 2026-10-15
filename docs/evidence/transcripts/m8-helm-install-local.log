@@ -1,0 +1,64 @@
+#CWD ~/readcycle
+$ kubectl apply -f k8s/namespace.yaml
+namespace/readcycle created
+
+$ kubectl create secret generic readcycle-db -n readcycle --from-literal=password="$(openssl rand -hex 16)"
+secret/readcycle-db created
+
+$ TAG=$(grep -oP "tag: \"\K[0-9a-f]{40}" gitops/environments/dev/values.yaml); echo "image tag = commit $TAG (built, scanned and pushed by the pipeline)"
+image tag = commit a042073caefaa06dd937b6e7e2fbad00d3d6d406 (built, scanned and pushed by the pipeline)
+
+$ helm lint helm/readcycle --set image.tag=$TAG | tail -1
+1 chart(s) linted, 0 chart(s) failed
+
+$ helm upgrade --install readcycle helm/readcycle -n readcycle --set image.tag=$TAG --wait --timeout 10m
+Release "readcycle" does not exist. Installing it now.
+I1015 23:23:53.166180  882512 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"postgres\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"postgres\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"postgres\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"postgres\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+NAME: readcycle
+LAST DEPLOYED: Thu Oct 15 23:23:52 2026
+NAMESPACE: readcycle
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+NOTES:
+ReadCycle a042073caefaa06dd937b6e7e2fbad00d3d6d406 is deployed as release "readcycle" (revision 1).
+
+  UI : http://readcycle.localhost:8088/
+  API: http://readcycle.localhost:8088/api/books
+
+Check it:  helm test readcycle -n readcycle
+
+$ helm list -n readcycle
+NAME     	NAMESPACE	REVISION	UPDATED                                	STATUS  	CHART          	APP VERSION
+readcycle	readcycle	1       	2026-10-15 23:23:52.834330256 +0530 IST	deployed	readcycle-1.0.2	1.0.0      
+
+$ kubectl get pods -n readcycle
+NAME                                 READY   STATUS    RESTARTS   AGE
+readcycle-backend-6559677dbd-kdz6q   1/1     Running   0          79s
+readcycle-backend-6559677dbd-wbrzp   1/1     Running   0          79s
+readcycle-frontend-bdb99756c-2wqgm   1/1     Running   0          79s
+readcycle-frontend-bdb99756c-jrm8t   1/1     Running   0          79s
+readcycle-postgres-0                 1/1     Running   0          79s
+
+$ kubectl get svc -n readcycle
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+readcycle-backend    ClusterIP   10.96.180.229   <none>        8000/TCP   80s
+readcycle-frontend   ClusterIP   10.96.228.232   <none>        80/TCP     80s
+readcycle-postgres   ClusterIP   None            <none>        5432/TCP   80s
+
+$ kubectl get ingress,hpa,pvc -n readcycle
+NAME                                  CLASS   HOSTS                 ADDRESS     PORTS   AGE
+ingress.networking.k8s.io/readcycle   nginx   readcycle.localhost   localhost   80      80s
+
+NAME                                                    REFERENCE                      TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/readcycle-backend   Deployment/readcycle-backend   cpu: <unknown>/70%   2         4         2          80s
+
+NAME                                              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-readcycle-postgres-0   Bound    pvc-abae8efc-29d2-4f2e-9e22-ff70d10a7417   1Gi        RWO            standard       <unset>                 80s
+
+$ helm test readcycle -n readcycle | sed -n "/TEST SUITE/,\$p"
+TEST SUITE:     readcycle-test-api
+Last Started:   Thu Oct 15 23:25:13 2026
+Last Completed: Thu Oct 15 23:25:22 2026
+Phase:          Succeeded
+

@@ -1,0 +1,25 @@
+#CWD ~/readcycle
+$ scripts/local-cluster.sh 2>&1 | grep -vE "^(serviceaccount|clusterrole|rolebinding|role|configmap|secret|validatingwebhook|job|apiservice|ingressclass|namespace|clusterrolebinding)\.|configured$|unchanged$" | tail -22
+
+Thanks for using kind! 😊
+serviceaccount/metrics-server created
+service/metrics-server created
+deployment.apps/metrics-server created
+deployment.apps/metrics-server patched
+namespace/ingress-nginx created
+serviceaccount/ingress-nginx created
+serviceaccount/ingress-nginx-admission created
+configmap/ingress-nginx-controller created
+service/ingress-nginx-controller created
+service/ingress-nginx-controller-admission created
+deployment.apps/ingress-nginx-controller created
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
+Waiting for deployment "metrics-server" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "metrics-server" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "metrics-server" rollout to finish: 1 old replicas are pending termination...
+deployment "metrics-server" successfully rolled out
+Waiting for deployment "ingress-nginx-controller" rollout to finish: 0 of 1 updated replicas are available...
+deployment "ingress-nginx-controller" successfully rolled out
+NAME                      STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+readcycle-control-plane   Ready    control-plane   97s   v1.37.0   172.21.0.2    <none>        Debian GNU/Linux 13 (trixie)   6.12.69-linuxkit (amd64)   containerd://2.3.4
+
