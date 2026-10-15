@@ -1,0 +1,31 @@
+#CWD ~/readcycle
+$ git remote -v | head -1; git log --oneline | wc -l | sed "s/^/commits on main: /"
+origin	https://github.com/RatneshVaibhav/readcycle.git (fetch)
+commits on main: 17
+
+$ git log --format="%h  %<(16,trunc)%an %s" | head -24
+0881437  Ratnesh Vaibhav  Add CI/CD and security evidence from GitHub
+8f3640e  github-actions.. Deploy ecfd0c2 to dev [skip ci]
+ecfd0c2  Ratnesh Vaibhav  Add local cluster and monitoring scripts, and Kubernetes and monitoring evidence
+90f4b9d  github-actions.. Deploy a042073 to dev [skip ci]
+a042073  Ratnesh Vaibhav  Add evidence tooling and the first evidence: tests, Compose, API, metrics
+6d36399  Ratnesh Vaibhav  Let pytest -v list every test
+4ccc035  Ratnesh Vaibhav  Make the Terraform safe and cheap for a real AWS Free plan account
+380d194  github-actions.. Deploy c707b5f to dev [skip ci]
+c707b5f  Ratnesh Vaibhav  Log in to GHCR before the deploy test pulls the new images
+c9fc214  Ratnesh Vaibhav  Rewrite the README and troubleshooting guide for the standalone repository
+79366e0  Ratnesh Vaibhav  Route ReadCycle alerts to their own receiver in the monitoring values
+6ff37a1  Ratnesh Vaibhav  Deploy through GitOps from this GitHub repository
+3cf8607  Ratnesh Vaibhav  Add a .gitignore and keep terraform.tfvars out of Git
+1696e2f  Ratnesh Vaibhav  Rename the project from ShelfShare to ReadCycle
+555cd84  Ratnesh Vaibhav  Move to the grader's folder layout
+81a235d  Ratnesh Vaibhav  Session 21: CI-to-GitOps rollout, troubleshooting challenge, monitoring, documentation
+7f170ca  Ratnesh Vaibhav  Session 21: ShelfShare final project - app, containers, Kubernetes, Helm, Terraform, security, GitOps, pipeline
+
+$ git check-ignore -v .env backend/.venv backend/app/__pycache__ frontend/node_modules terraform/terraform.tfstate | sed "s/\t/   ->   /"
+.gitignore:3:*.env   ->   .env
+.gitignore:29:.venv/   ->   backend/.venv
+.gitignore:27:__pycache__/   ->   backend/app/__pycache__
+frontend/.gitignore:1:node_modules/   ->   frontend/node_modules
+.gitignore:15:*.tfstate   ->   terraform/terraform.tfstate
+
