@@ -1,5 +1,7 @@
-# Argo CD renders the Helm chart from the GitOps repository with the environment's values
-# and keeps the readcycle namespace equal to it (prune + self-heal).
+# Argo CD renders helm/readcycle from this GitHub repository with the dev environment's
+# values and keeps the readcycle namespace equal to it (prune + self-heal).
+# The pipeline's "promote" job changes image.tag in gitops/environments/dev/values.yaml;
+# Argo CD notices the new commit (polls every 30 s) and rolls the new images out.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -8,13 +10,13 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: http://gitea-http.gitea.svc.cluster.local:3000/ratnesh/readcycle-gitops.git
+    repoURL: https://github.com/RatneshVaibhav/readcycle.git
     targetRevision: main
-    path: charts/readcycle
+    path: helm/readcycle
     helm:
       releaseName: readcycle
       valueFiles:
-        - ../../environments/dev/values.yaml
+        - ../../gitops/environments/dev/values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: readcycle
@@ -22,5 +24,3 @@ spec:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true

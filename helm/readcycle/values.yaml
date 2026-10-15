@@ -1,9 +1,10 @@
-# Images are <registry>/<owner>/readcycle-backend|frontend:<tag>.
-# CI sets image.tag to the git commit SHA.
+# Images are <registry>/<owner>/readcycle-backend|frontend:<tag>, published by the pipeline.
+# image.tag is required and is always a git commit SHA (never "latest"), so every running
+# pod traces back to the exact commit that was tested, scanned and built.
 image:
-  registry: localhost:5001
+  registry: ghcr.io
   owner: ratneshvaibhav
-  tag: "1.0.0"
+  tag: ""
   pullPolicy: IfNotPresent
 
 backend:

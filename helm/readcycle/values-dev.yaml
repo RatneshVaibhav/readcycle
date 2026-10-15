@@ -1,6 +1,4 @@
-# development: local kind cluster, images from the lab registry
-image:
-  registry: localhost:5001
+# development: verbose logs (images still come from GHCR; pass --set image.tag=<commit SHA>)
 backend:
   env:
     APP_ENV: development

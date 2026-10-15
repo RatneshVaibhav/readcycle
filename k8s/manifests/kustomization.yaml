@@ -21,10 +21,12 @@ secretGenerator:
     envs: [db.env]
 generatorOptions:
   disableNameSuffixHash: true
+# images published by the pipeline; pick a build with
+#   cd k8s/manifests && kustomize edit set image readcycle-backend=ghcr.io/ratneshvaibhav/readcycle-backend:<sha>
 images:
   - name: readcycle-backend
-    newName: localhost:5001/ratneshvaibhav/readcycle-backend
-    newTag: "1.0.0"
+    newName: ghcr.io/ratneshvaibhav/readcycle-backend
+    newTag: "set-to-a-pipeline-commit-sha"
   - name: readcycle-frontend
-    newName: localhost:5001/ratneshvaibhav/readcycle-frontend
-    newTag: "1.0.0"
+    newName: ghcr.io/ratneshvaibhav/readcycle-frontend
+    newTag: "set-to-a-pipeline-commit-sha"

@@ -1,16 +1,17 @@
-# Session 21 - ReadCycle end-to-end pipeline
+# ReadCycle - CI/CD pipeline (runs on every push and pull request to main)
 #
 #  backend-test ─┐                       ┌─ sast ────────┐
 #  frontend-build┴─────────────────────► ├─ sca ─────────┼─► docker-build ─► image-scan ─┐
 #                                        └─ secret-scan ─┘                              │
 #                                   security-gate (one policy over 8 reports) ◄─────────┘
 #                                        │
-#                                      push (both images, tag = commit SHA)
+#                                      push         both images to GHCR, tag = commit SHA
 #                                        │
-#                                      deploy:  DEPLOY_MODE=kind   -> throw-away kind cluster + helm upgrade --install + helm test
-#                                               DEPLOY_MODE=gitops -> commit image.tag to the GitOps repo; Argo CD rolls it out
-#
-name: Session 21 - ReadCycle pipeline
+#                                      deploy-test  throw-away kind cluster: helm upgrade --install + helm test
+#                                        │
+#                                      promote      commit the new tag to gitops/environments/dev/values.yaml;
+#                                                   Argo CD in the cluster pulls the change and rolls it out
+name: ReadCycle CI/CD
 
 on:
   push:
@@ -28,7 +29,6 @@ concurrency:
 
 env:
   REGISTRY: ${{ vars.REGISTRY || 'ghcr.io' }}
-  DEPLOY_MODE: ${{ vars.DEPLOY_MODE || 'kind' }}
 
 defaults:
   run:
@@ -243,57 +243,58 @@ jobs:
             echo "pushed $target"
           done
 
-  deploy:
-    name: Deploy (${{ vars.DEPLOY_MODE || 'kind' }})
+  deploy-test:
+    name: Deploy test (kind + helm test)
     needs: push
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       - uses: actions/checkout@v4
-
-      # ---- GitOps: change the desired state, Argo CD does the rest
-      - name: Promote the new tag in the GitOps repository
-        if: env.DEPLOY_MODE == 'gitops'
-        env:
-          GITOPS_REPO: ${{ secrets.GITOPS_REPO }}
-        run: |
-          git clone -q "$GITOPS_REPO" /tmp/gitops
-          cd /tmp/gitops
-          git config user.name "readcycle-ci"
-          git config user.email "ci@readcycle.invalid"
-          sed -i -E "s/^(  tag: ).*/\1\"$GITHUB_SHA\"/" environments/dev/values.yaml
-          git diff --stat
-          git commit -qam "Deploy readcycle ${GITHUB_SHA::7} to dev (pipeline run $GITHUB_RUN_NUMBER)"
-          git push -q origin HEAD:main
-          echo "dev now wants image tag $GITHUB_SHA ($(git rev-parse --short HEAD))"
-
-      # ---- no GitOps controller reachable (GitHub-hosted runner): deploy directly with Helm
       - name: Create a throw-away kind cluster
-        if: env.DEPLOY_MODE != 'gitops'
         uses: helm/kind-action@v1
         with:
           cluster_name: ci
       - name: Install Helm
-        if: env.DEPLOY_MODE != 'gitops'
         uses: azure/setup-helm@v4
       - name: Load the pushed images into the cluster
-        if: env.DEPLOY_MODE != 'gitops'
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           for img in backend frontend; do
             ref="$REGISTRY/${GITHUB_REPOSITORY_OWNER,,}/readcycle-$img:$GITHUB_SHA"
             docker pull -q "$ref" && kind load docker-image "$ref" --name ci
           done
-      - name: helm upgrade --install
-        if: env.DEPLOY_MODE != 'gitops'
+      - name: helm upgrade --install, then helm test
         run: |
-          kubectl create namespace readcycle
+          kubectl apply -f k8s/namespace.yaml
           kubectl create secret generic readcycle-db -n readcycle --from-literal=password="$(openssl rand -hex 16)"
           helm upgrade --install readcycle helm/readcycle -n readcycle --wait --timeout 6m \
             --set image.registry="$REGISTRY" --set image.owner="${GITHUB_REPOSITORY_OWNER,,}" \
             --set image.tag="$GITHUB_SHA" --set image.pullPolicy=Never \
             --set ingress.enabled=false --set monitoring.serviceMonitor.enabled=false \
             --set monitoring.rules.enabled=false --set monitoring.dashboard.enabled=false
-          kubectl get pods -n readcycle
+          kubectl get pods,svc -n readcycle
           helm test readcycle -n readcycle
+
+  promote:
+    name: Promote to dev (GitOps)
+    needs: deploy-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Commit the new image tag (Argo CD rolls it out)
+        run: |
+          sed -i -E "s/^(  tag: ).*/\1\"$GITHUB_SHA\"/" gitops/environments/dev/values.yaml
+          if git diff --quiet; then echo "dev already runs $GITHUB_SHA"; exit 0; fi
+          git diff
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # [skip ci]: this commit only changes the desired state; it must not start another run
+          git commit -qam "Deploy ${GITHUB_SHA::7} to dev [skip ci]"
+          git pull -q --rebase origin main
+          git push -q origin HEAD:main
+          echo "dev now wants image tag $GITHUB_SHA ($(git rev-parse --short HEAD))"

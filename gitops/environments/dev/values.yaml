@@ -1,9 +1,10 @@
-# Desired state of the "dev" environment.
-# image.tag is rewritten by the CI pipeline after every build that passes the security gate.
+# Desired state of the "dev" environment, deployed by Argo CD.
+# image.tag is rewritten by the pipeline's promote job after every build that passes the
+# security gate, so the running pods always trace back to one commit.
 image:
-  registry: localhost:5001
+  registry: ghcr.io
   owner: ratneshvaibhav
-  tag: "1.0.1"
+  tag: "set-by-the-first-pipeline-run"
 backend:
   env:
     APP_ENV: development

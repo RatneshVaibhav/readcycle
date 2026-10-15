@@ -15,7 +15,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 
 {{- define "readcycle.image" -}}
-{{ printf "%s/%s/readcycle-%s:%s" .root.Values.image.registry .root.Values.image.owner .name .root.Values.image.tag }}
+{{ printf "%s/%s/readcycle-%s:%s" .root.Values.image.registry .root.Values.image.owner .name (required "image.tag is required: the commit SHA of a pipeline build" .root.Values.image.tag) }}
 {{- end -}}
 
 {{- define "readcycle.dbHost" -}}

@@ -1,28 +1,17 @@
 #!/usr/bin/env bash
-# bootstrap.sh - publish the chart and the environment values to the GitOps repository
-# (Gitea inside the cluster) and register the Argo CD Application.
-# Needs GITEA_PW (admin password) and GIT_CREDS (git credential-store file) in the environment.
+# bootstrap.sh - one-time GitOps setup of a cluster (local kind or EKS):
+#   the readcycle namespace, a random database password Secret (never printed, never in Git),
+#   Argo CD, and the Application that makes Argo CD deploy helm/readcycle from GitHub.
 set -euo pipefail
-HERE="$(cd "$(dirname "$0")" && pwd)"
-PROJECT="$(cd "$HERE/.." && pwd)"
-GITEA=http://gitea.localhost:8088
-REPO=readcycle-gitops
-WORK="${WORK:-$HOME/$REPO}"
+cd "$(dirname "$0")/.."
 
-curl -sf -u "ratnesh:$GITEA_PW" -X POST "$GITEA/api/v1/user/repos" -H "Content-Type: application/json" \
-  -d "{\"name\":\"$REPO\",\"description\":\"ReadCycle desired state (Helm chart + environments)\",\"private\":false}" \
-  | jq -r '"created " + .full_name' || echo "repository already exists"
+kubectl apply -f k8s/namespace.yaml
+kubectl get secret readcycle-db -n readcycle >/dev/null 2>&1 ||
+  kubectl create secret generic readcycle-db -n readcycle --from-literal=password="$(openssl rand -hex 16)"
 
-rm -rf "$WORK" && git clone -q "$GITEA/ratnesh/$REPO.git" "$WORK" 2>/dev/null
-cd "$WORK"
-git config user.name "Ratnesh Vaibhav"
-git config user.email 180539626+RatneshVaibhav@users.noreply.github.com
-git config credential.helper "store --file=$GIT_CREDS"
-git checkout -q -B main
-mkdir -p charts environments
-cp -r "$PROJECT/helm/readcycle" charts/
-cp -r "$PROJECT/gitops/environments/." environments/
-printf '# readcycle-gitops\n\nDesired state of ReadCycle. Argo CD watches this repository.\n\n- `charts/readcycle` - the Helm chart\n- `environments/<env>/values.yaml` - per-environment values; CI bumps `image.tag`\n' > README.md
-git add . && git commit -q -m "Bootstrap: readcycle chart 1.0.0 and dev environment" && git push -q -u origin main
-git log --oneline -1
-kubectl apply -f "$HERE/argocd/readcycle-app.yaml"
+helm repo add argo https://argoproj.github.io/argo-helm --force-update >/dev/null
+helm upgrade --install argocd argo/argo-cd --version 10.10.0 -n argocd --create-namespace \
+  -f gitops/argocd/values.yaml --wait --timeout 10m
+
+kubectl apply -f gitops/argocd/readcycle-app.yaml
+echo "Argo CD now deploys helm/readcycle from https://github.com/RatneshVaibhav/readcycle (branch main)"
