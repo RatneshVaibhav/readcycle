@@ -1,0 +1,37 @@
+#CWD ~/readcycle
+$ grep -nE "severity|HIGH|CRITICAL|ignore-unfixed" security/trivy.yaml
+2:severity:
+3:  - HIGH
+4:  - CRITICAL
+9:  # no ignore-unfixed: the Alpine base image has zero HIGH/CRITICAL CVEs, so the
+11:  ignore-unfixed: false
+
+$ grep -n "IMAGES\|trivy-image" security/security-gate.sh | head -4
+8:#   IMAGES   any HIGH/CRITICAL CVE in the backend or frontend image
+35:row IMAGE   "trivy backend image"   trivy-image-backend.json "$ALL" "$HC"
+36:row IMAGE   "trivy frontend image"  trivy-image-frontend.json "$ALL" "$HC"
+
+$ RUN=38781771749; gh run view $RUN -R RatneshVaibhav/readcycle --json displayTitle,headSha,conclusion,url --jq "\"run #3 \(.conclusion) for \(.headSha[0:7]): \(.url)\""
+run #3 success for ecfd0c2: https://github.com/RatneshVaibhav/readcycle/actions/runs/38781771749
+
+$ gh run view $RUN -R RatneshVaibhav/readcycle --log --job 116584187486 | cut -f3- | sed -E "s/^[0-9T:.-]+Z //" | grep -E "installed trivy|trivy image --config|image: [0-9]+ HIGH"
+installed trivy (sha256 verified)
+^[[36;1m  trivy image --config security/trivy.yaml --quiet --input images/$img.tar --format json -o reports/trivy-image-$img.json^[[0m
+backend image: 0 HIGH/CRITICAL (alpine 3.24.2)
+frontend image: 0 HIGH/CRITICAL (alpine 3.23.4)
+
+$ gh run view $RUN -R RatneshVaibhav/readcycle --log --job 116584371027 | cut -f3- | sed -E "s/^[0-9T:.-]+Z //" | grep -A12 "^CHECK"
+CHECK    TOOL                    FINDINGS  BLOCKING  RESULT
+------   --------------------    --------  --------  ------
+SAST     bandit (backend)               0         0  PASS
+SAST     semgrep (both)                 0         0  PASS
+SCA      pip-audit (backend)            0         0  PASS
+SCA      npm audit (frontend)           0         0  PASS
+SCA      trivy fs                       0         0  PASS
+SECRETS  gitleaks                       0         0  PASS
+IMAGE    trivy backend image            0         0  PASS
+IMAGE    trivy frontend image           0         0  PASS
+
+SECURITY GATE: PASSED - images may be pushed and deployed
+﻿2026-10-15T18:00:28.8132666Z ##[group]Run { echo '### Security gate'; echo '```'; cat gate.txt 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
