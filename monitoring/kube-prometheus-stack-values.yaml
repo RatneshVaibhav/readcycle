@@ -1,4 +1,6 @@
-# Cluster monitoring stack shared with Session 20 (helm release "kps" in namespace monitoring).
+# Cluster monitoring stack (helm release "kps" in namespace monitoring):
+#   helm upgrade --install kps prometheus-community/kube-prometheus-stack --version 92.1.0 \
+#     -n monitoring --create-namespace -f monitoring/kube-prometheus-stack-values.yaml
 # ReadCycle ships its own ServiceMonitor, PrometheusRule and Grafana dashboard in the Helm chart
 # (helm/readcycle/templates/servicemonitor.yaml, prometheusrule.yaml, grafana-dashboard.yaml).
 # kube-prometheus-stack 92.1.0, trimmed for a single-node kind cluster on a laptop.
@@ -30,7 +32,7 @@ prometheus:
     retention: 12h
     retentionSize: 1500MB
     # without a storageSpec the TSDB is an emptyDir: every restart or pause of the
-    # Prometheus pod threw the metrics history away (found in Session 21, transcript 33)
+    # Prometheus pod threw the metrics history away (found while load-testing the lab cluster)
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -60,14 +62,13 @@ alertmanager:
       routes:
         - receiver: "null"               # Watchdog is a heartbeat, not a page
           matchers: ['alertname = "Watchdog"']
-        - receiver: campus-web-team      # every alert labelled team=campus-web
-          matchers: ['team = "campus-web"']
+        - receiver: readcycle-team       # every ReadCycle alert (labelled team=readcycle)
+          matchers: ['team = "readcycle"']
     receivers:
       - name: "null"
-      - name: campus-web-team
-        webhook_configs:
-          - url: http://alert-receiver.session20.svc.cluster.local:8080/
-            send_resolved: true
+      # alerts routed here are visible in the Alertmanager UI; add email_configs or
+      # slack_configs to this receiver to get paged as well
+      - name: readcycle-team
     templates: ["/etc/alertmanager/config/*.tmpl"]
   ingress:
     enabled: true
