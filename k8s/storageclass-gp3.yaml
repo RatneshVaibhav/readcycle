@@ -1,0 +1,18 @@
+# EKS only: make gp3 EBS volumes (via the aws-ebs-csi-driver add-on) the default StorageClass,
+# so PersistentVolumeClaims without a class (PostgreSQL, Prometheus) get a disk.
+#   kubectl apply -f k8s/storageclass-gp3.yaml
+# WaitForFirstConsumer creates the volume in the availability zone where the pod is scheduled;
+# Delete removes the volume when the claim is deleted, so nothing is left after teardown.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+parameters:
+  type: gp3
+  encrypted: "true"

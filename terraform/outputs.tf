@@ -35,6 +35,6 @@ output "node_group" {
 }
 
 output "kubeconfig_command" {
-  description = "Point kubectl at the new cluster (real AWS)."
+  description = "Point kubectl at the new cluster."
   value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${aws_eks_cluster.main.name}"
 }
