@@ -4,7 +4,7 @@
 image:
   registry: ghcr.io
   owner: ratneshvaibhav
-  tag: "set-by-the-first-pipeline-run"
+  tag: "c707b5f8dd3ca86f684df1d0fa6caf47f452b3ba"
 backend:
   env:
     APP_ENV: development
