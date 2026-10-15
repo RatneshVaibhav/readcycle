@@ -10,39 +10,29 @@
 #                                      deploy:  DEPLOY_MODE=kind   -> throw-away kind cluster + helm upgrade --install + helm test
 #                                               DEPLOY_MODE=gitops -> commit image.tag to the GitOps repo; Argo CD rolls it out
 #
-# A copy of this file lives in final-devops-project/.github/workflows/pipeline.yml;
-# GitHub only runs workflows from the repository root, so this one is the one that runs.
 name: Session 21 - ShelfShare pipeline
 
 on:
   push:
     branches: [main]
-    paths:
-      - "session-21-final-devops-project/final-devops-project/**"
-      - ".github/workflows/session-21-pipeline.yml"
   pull_request:
     branches: [main]
-    paths:
-      - "session-21-final-devops-project/final-devops-project/**"
-      - ".github/workflows/session-21-pipeline.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: session21-${{ github.ref }}
+  group: pipeline-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  PROJECT: session-21-final-devops-project/final-devops-project
   REGISTRY: ${{ vars.REGISTRY || 'ghcr.io' }}
   DEPLOY_MODE: ${{ vars.DEPLOY_MODE || 'kind' }}
 
 defaults:
   run:
     shell: bash
-    working-directory: session-21-final-devops-project/final-devops-project
 
 jobs:
   # ------------------------------------------------------------ build & test
@@ -55,15 +45,15 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r application/backend/requirements-dev.txt
+        run: pip install -r backend/requirements-dev.txt
       - name: Run pytest (SQLite test database)
-        working-directory: ${{ env.PROJECT }}/application/backend
+        working-directory: backend
         run: pytest -v --cov=app --cov-report=term --cov-report=xml:reports/coverage.xml --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: backend-test-report
-          path: ${{ env.PROJECT }}/application/backend/reports/
+          path: backend/reports/
 
   frontend-build:
     name: Frontend build (Vite)
@@ -74,12 +64,12 @@ jobs:
         with:
           node-version: "24"
       - name: npm ci and build
-        working-directory: ${{ env.PROJECT }}/application/frontend
+        working-directory: frontend
         run: npm ci --no-audit --no-fund && npm run build && ls -la dist/assets
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: ${{ env.PROJECT }}/application/frontend/dist/
+          path: frontend/dist/
 
   # ------------------------------------------------------------ security scans
   sast:
@@ -95,17 +85,17 @@ jobs:
       - name: Bandit (backend)
         run: |
           mkdir -p reports
-          bandit -r application/backend/app -c security/bandit.yaml -f json -o reports/bandit.json --exit-zero -q
+          bandit -r backend/app -c security/bandit.yaml -f json -o reports/bandit.json --exit-zero -q
           jq -r '"bandit: \(.results | length) findings (\([.results[] | select(.issue_severity == "HIGH")] | length) HIGH) in \(.metrics._totals.loc) lines"' reports/bandit.json
       - name: Semgrep (backend + frontend)
         run: |
           semgrep scan --config p/python --config p/react --config security/semgrep-rules.yml --metrics off \
-            --json -o reports/semgrep.json application/backend/app application/frontend/src
+            --json -o reports/semgrep.json backend/app frontend/src
           jq -r '"semgrep: \(.results | length) findings in \(.paths.scanned | length) files"' reports/semgrep.json
       - uses: actions/upload-artifact@v4
         with:
           name: security-sast
-          path: ${{ env.PROJECT }}/reports/
+          path: reports/
 
   sca:
     name: SCA (pip-audit + npm audit + Trivy fs)
@@ -124,21 +114,21 @@ jobs:
       - name: pip-audit (backend)
         run: |
           mkdir -p reports
-          pip-audit -r application/backend/requirements.txt -f json -o reports/pip-audit.json || true
+          pip-audit -r backend/requirements.txt -f json -o reports/pip-audit.json || true
           jq -r '"pip-audit: \([.dependencies[].vulns[]] | length) vulnerabilities in \(.dependencies | length) packages"' reports/pip-audit.json
       - name: npm audit (frontend runtime dependencies)
-        working-directory: ${{ env.PROJECT }}/application/frontend
+        working-directory: frontend
         run: |
-          npm audit --omit=dev --json > ../../reports/npm-audit.json || true
-          jq -c '.metadata.vulnerabilities' ../../reports/npm-audit.json
+          npm audit --omit=dev --json > ../reports/npm-audit.json || true
+          jq -c '.metadata.vulnerabilities' ../reports/npm-audit.json
       - name: Trivy filesystem scan (requirements.txt + package-lock.json)
         run: |
-          trivy fs --config security/trivy.yaml --quiet --format json -o reports/trivy-fs.json application
-          trivy fs --config security/trivy.yaml --quiet application
+          trivy fs --config security/trivy.yaml --quiet --format json -o reports/trivy-fs.json .
+          trivy fs --config security/trivy.yaml --quiet .
       - uses: actions/upload-artifact@v4
         with:
           name: security-sca
-          path: ${{ env.PROJECT }}/reports/
+          path: reports/
 
   secret-scan:
     name: Secret scan (Gitleaks)
@@ -157,7 +147,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: security-secrets
-          path: ${{ env.PROJECT }}/reports/
+          path: reports/
 
   # ------------------------------------------------------------ images
   docker-build:
@@ -168,8 +158,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build both images
         run: |
-          docker build -f docker/backend.Dockerfile --build-arg BUILD_SHA="$GITHUB_SHA" -t shelfshare-backend:"$GITHUB_SHA" .
-          docker build -f docker/frontend.Dockerfile -t shelfshare-frontend:"$GITHUB_SHA" .
+          docker build --build-arg BUILD_SHA="$GITHUB_SHA" -t shelfshare-backend:"$GITHUB_SHA" backend
+          docker build -t shelfshare-frontend:"$GITHUB_SHA" frontend
           docker images | grep -E "shelfshare-(backend|frontend)"
       - name: Save images
         run: |
@@ -180,7 +170,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: docker-images
-          path: ${{ env.PROJECT }}/images/
+          path: images/
           retention-days: 1
 
   image-scan:
@@ -192,7 +182,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: docker-images
-          path: ${{ env.PROJECT }}/images
+          path: images
       - name: Install pinned, checksum-verified scanners
         run: bash security/install-tools.sh "$HOME/.local/bin" && echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Trivy - the exact tarballs that will be pushed
@@ -205,7 +195,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: security-images
-          path: ${{ env.PROJECT }}/reports/
+          path: reports/
 
   security-gate:
     name: Security gate
@@ -217,7 +207,7 @@ jobs:
         with:
           pattern: security-*
           merge-multiple: true
-          path: ${{ env.PROJECT }}/reports
+          path: reports
       - name: Apply the security policy
         run: security/security-gate.sh reports | tee gate.txt
       - name: Publish the gate result
@@ -238,7 +228,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: docker-images
-          path: ${{ env.PROJECT }}/images
+          path: images
       - name: Load images
         run: docker load -i images/backend.tar && docker load -i images/frontend.tar
       - name: Log in to GitHub Container Registry

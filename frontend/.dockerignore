@@ -1,0 +1,5 @@
+# build context is frontend/: sources, lock file and the nginx template
+node_modules
+dist
+.env
+*.md

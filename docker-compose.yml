@@ -1,4 +1,4 @@
-# Full local stack:  cd docker && cp .env.example .env && docker compose up --build
+# Full local stack:  cp .env.example .env  (then set DB_PASSWORD)  &&  docker compose up --build
 name: shelfshare
 
 services:
@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: shelfshare
       POSTGRES_USER: shelfshare
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in docker/.env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -17,8 +17,7 @@ services:
 
   backend:
     build:
-      context: ..
-      dockerfile: docker/backend.Dockerfile
+      context: ./backend
     image: shelfshare-backend:compose
     environment:
       APP_ENV: compose
@@ -38,8 +37,7 @@ services:
 
   frontend:
     build:
-      context: ..
-      dockerfile: docker/frontend.Dockerfile
+      context: ./frontend
     image: shelfshare-frontend:compose
     environment:
       BACKEND_URL: http://backend:8000

@@ -1,10 +1,10 @@
-# ShelfShare UI - build context: final-devops-project/
+# ShelfShare UI - build context: frontend/
 # ---- build stage: Node + Vite produce static files
 FROM node:24-alpine AS build
 WORKDIR /app
-COPY application/frontend/package.json application/frontend/package-lock.json ./
+COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
-COPY application/frontend/ ./
+COPY . ./
 RUN npm run build
 
 # ---- runtime stage: unprivileged nginx (uid 101, port 8080), no Node at all
@@ -14,7 +14,7 @@ FROM nginxinc/nginx-unprivileged:1.29-alpine
 USER root
 RUN apk upgrade --no-cache && apk del --no-cache curl
 USER 101
-COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 # where nginx forwards /api - overridden per environment
 ENV BACKEND_URL=http://backend:8000

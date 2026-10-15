@@ -1,0 +1,9 @@
+# build context is backend/: only the app, its migrations and requirements are needed
+.venv
+__pycache__
+.pytest_cache
+.coverage
+reports
+tests
+.env
+*.md

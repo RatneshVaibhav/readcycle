@@ -1,5 +1,5 @@
-# Plain-manifest version of ShelfShare:  kubectl apply -k kubernetes/
-# (the Helm chart in ../helm is the same application, parameterised)
+# Plain-manifest version of ShelfShare:  kubectl apply -k k8s/manifests/
+# (the Helm chart in ../../helm is the same application, parameterised)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: shelfshare-raw

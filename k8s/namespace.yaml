@@ -1,0 +1,14 @@
+# The namespace the Helm release is installed into:
+#   kubectl apply -f k8s/namespace.yaml
+#   helm upgrade --install shelfshare helm/shelfshare -n shelfshare ...
+# Pod Security: "baseline" is enforced (no privileged pods, no host access) and "restricted"
+# (non-root, no capabilities, seccomp) is reported as a warning on every apply.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shelfshare
+  labels:
+    app.kubernetes.io/part-of: shelfshare
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
