@@ -1,0 +1,48 @@
+# ---- secrets and local configuration: never committed
+.env
+*.env
+!.env.example
+!*.env.example
+*.pem
+*.key
+id_rsa*
+*.kubeconfig
+kubeconfig*
+.aws/
+
+# ---- Terraform: state holds resource IDs and can hold secrets; tfvars are per-person
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+*.tfplan
+tfplan
+crash.log
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+
+# ---- Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+coverage.xml
+
+# ---- Node / Vite
+node_modules/
+dist/
+.vite/
+
+# ---- scanner reports and CI image tarballs (regenerated on every run)
+reports/
+images/
+
+# ---- editors and OS noise
+.idea/
+.vscode/
+.DS_Store
+*.swp
