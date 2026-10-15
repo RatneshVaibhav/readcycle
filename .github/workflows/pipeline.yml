@@ -248,6 +248,9 @@ jobs:
     needs: push
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
       - name: Create a throw-away kind cluster
@@ -258,6 +261,7 @@ jobs:
         uses: azure/setup-helm@v4
       - name: Load the pushed images into the cluster
         run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           for img in backend frontend; do
             ref="$REGISTRY/${GITHUB_REPOSITORY_OWNER,,}/readcycle-$img:$GITHUB_SHA"
             docker pull -q "$ref" && kind load docker-image "$ref" --name ci
