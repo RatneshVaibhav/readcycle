@@ -1,11 +1,11 @@
-# Plain-manifest version of ShelfShare:  kubectl apply -k k8s/manifests/
+# Plain-manifest version of ReadCycle:  kubectl apply -k k8s/manifests/
 # (the Helm chart in ../../helm is the same application, parameterised)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: shelfshare-raw
+namespace: readcycle-raw
 labels:
   - pairs:
-      app.kubernetes.io/part-of: shelfshare
+      app.kubernetes.io/part-of: readcycle
     includeSelectors: false
 resources:
   - namespace.yaml
@@ -17,14 +17,14 @@ resources:
   - hpa.yaml
 # the database password is read from db.env (git-ignored, see db.env.example)
 secretGenerator:
-  - name: shelfshare-db
+  - name: readcycle-db
     envs: [db.env]
 generatorOptions:
   disableNameSuffixHash: true
 images:
-  - name: shelfshare-backend
-    newName: localhost:5001/ratneshvaibhav/shelfshare-backend
+  - name: readcycle-backend
+    newName: localhost:5001/ratneshvaibhav/readcycle-backend
     newTag: "1.0.0"
-  - name: shelfshare-frontend
-    newName: localhost:5001/ratneshvaibhav/shelfshare-frontend
+  - name: readcycle-frontend
+    newName: localhost:5001/ratneshvaibhav/readcycle-frontend
     newTag: "1.0.0"

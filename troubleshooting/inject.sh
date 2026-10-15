@@ -2,7 +2,7 @@
 # inject.sh <fault-file> - merge a fault into environments/dev/values.yaml of the GitOps
 # working copy and push it, exactly like a bad pull request being merged.
 set -euo pipefail
-FAULT="$(realpath "$1")"; REPO="${REPO:-$HOME/shelfshare-gitops}"
+FAULT="$(realpath "$1")"; REPO="${REPO:-$HOME/readcycle-gitops}"
 python3 - "$REPO/environments/dev/values.yaml" "$FAULT" <<'PY'
 import sys, yaml
 target, fault = sys.argv[1], sys.argv[2]

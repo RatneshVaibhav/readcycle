@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "shelfshare.name" . }}-backend
+  name: {{ include "readcycle.name" . }}-backend
   labels:
-    {{- include "shelfshare.labels" . | nindent 4 }}
+    {{- include "readcycle.labels" . | nindent 4 }}
     app.kubernetes.io/component: backend
 spec:
   {{- if not .Values.backend.hpa.enabled }}
   replicas: {{ .Values.backend.replicas }}
   {{- end }}
   selector:
-    matchLabels: {{- include "shelfshare.selector" (dict "Release" .Release "component" "backend") | nindent 6 }}
+    matchLabels: {{- include "readcycle.selector" (dict "Release" .Release "component" "backend") | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "shelfshare.selector" (dict "Release" .Release "component" "backend") | nindent 8 }}
+        {{- include "readcycle.selector" (dict "Release" .Release "component" "backend") | nindent 8 }}
         app.kubernetes.io/version: {{ .Values.image.tag | quote }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/backend-configmap.yaml") . | sha256sum }}
@@ -28,21 +28,21 @@ spec:
           image: {{ .Values.postgres.image }}
           command: ["sh", "-c", "until pg_isready -h \"$DB_HOST\" -p \"$DB_PORT\" -t 2; do echo waiting for $DB_HOST; sleep 2; done"]
           envFrom:
-            - configMapRef: {name: {{ include "shelfshare.name" . }}-backend}
+            - configMapRef: {name: {{ include "readcycle.name" . }}-backend}
           resources:
             requests: {cpu: 10m, memory: 16Mi}
             limits: {memory: 32Mi}
           securityContext:
             runAsUser: 70
-            {{- include "shelfshare.restricted" . | nindent 12 }}
+            {{- include "readcycle.restricted" . | nindent 12 }}
       containers:
         - name: api
-          image: {{ include "shelfshare.image" (dict "root" . "name" "backend") }}
+          image: {{ include "readcycle.image" (dict "root" . "name" "backend") }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - {name: http, containerPort: 8000}
           envFrom:
-            - configMapRef: {name: {{ include "shelfshare.name" . }}-backend}
+            - configMapRef: {name: {{ include "readcycle.name" . }}-backend}
           env:
             - name: DB_PASSWORD
               valueFrom:
@@ -66,4 +66,4 @@ spec:
           resources: {{- toYaml .Values.backend.resources | nindent 12 }}
           securityContext:
             readOnlyRootFilesystem: true
-            {{- include "shelfshare.restricted" . | nindent 12 }}
+            {{- include "readcycle.restricted" . | nindent 12 }}

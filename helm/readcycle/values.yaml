@@ -1,4 +1,4 @@
-# Images are <registry>/<owner>/shelfshare-backend|frontend:<tag>.
+# Images are <registry>/<owner>/readcycle-backend|frontend:<tag>.
 # CI sets image.tag to the git commit SHA.
 image:
   registry: localhost:5001
@@ -38,17 +38,17 @@ postgres:
 database:
   host: ""                # empty = the chart's own postgres
   port: 5432
-  name: shelfshare
-  user: shelfshare
+  name: readcycle
+  user: readcycle
   # The password is never in values or Git: create the Secret beforehand, e.g.
-  #   kubectl create secret generic shelfshare-db --from-literal=password=$(openssl rand -hex 16)
-  existingSecret: shelfshare-db
+  #   kubectl create secret generic readcycle-db --from-literal=password=$(openssl rand -hex 16)
+  existingSecret: readcycle-db
   passwordKey: password
 
 ingress:
   enabled: true
   className: nginx
-  host: shelfshare.localhost
+  host: readcycle.localhost
 
 monitoring:
   serviceMonitor:

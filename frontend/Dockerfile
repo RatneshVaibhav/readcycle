@@ -1,4 +1,4 @@
-# ShelfShare UI - build context: frontend/
+# ReadCycle UI - build context: frontend/
 # ---- build stage: Node + Vite produce static files
 FROM node:24-alpine AS build
 WORKDIR /app

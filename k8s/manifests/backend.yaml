@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: shelfshare-backend
-  labels: {app: shelfshare-backend}
+  name: readcycle-backend
+  labels: {app: readcycle-backend}
 spec:
   replicas: 2
   selector:
-    matchLabels: {app: shelfshare-backend}
+    matchLabels: {app: readcycle-backend}
   template:
     metadata:
-      labels: {app: shelfshare-backend}
+      labels: {app: readcycle-backend}
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -22,7 +22,7 @@ spec:
           image: postgres:17-alpine
           command: ["sh", "-c", "until pg_isready -h \"$DB_HOST\" -p \"$DB_PORT\" -t 2; do echo waiting for $DB_HOST; sleep 2; done"]
           envFrom:
-            - configMapRef: {name: shelfshare-backend-config}
+            - configMapRef: {name: readcycle-backend-config}
           resources:
             requests: {cpu: 10m, memory: 16Mi}
             limits: {memory: 32Mi}
@@ -32,14 +32,14 @@ spec:
             capabilities: {drop: ["ALL"]}
       containers:
         - name: api
-          image: shelfshare-backend
+          image: readcycle-backend
           ports:
             - {name: http, containerPort: 8000}
           envFrom:
-            - configMapRef: {name: shelfshare-backend-config}
+            - configMapRef: {name: readcycle-backend-config}
           env:
             - name: DB_PASSWORD
-              valueFrom: {secretKeyRef: {name: shelfshare-db, key: password}}
+              valueFrom: {secretKeyRef: {name: readcycle-db, key: password}}
           startupProbe:                 # migrations + boot: up to 30 x 2s
             httpGet: {path: /health, port: http}
             periodSeconds: 2
@@ -63,9 +63,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: shelfshare-backend
-  labels: {app: shelfshare-backend}
+  name: readcycle-backend
+  labels: {app: readcycle-backend}
 spec:
-  selector: {app: shelfshare-backend}
+  selector: {app: readcycle-backend}
   ports:
     - {name: http, port: 8000, targetPort: http}

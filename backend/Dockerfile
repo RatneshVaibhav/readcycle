@@ -1,4 +1,4 @@
-# ShelfShare API - build context: backend/
+# ReadCycle API - build context: backend/
 # ---- dependencies in a throw-away stage
 FROM python:3.12-alpine AS deps
 WORKDIR /build

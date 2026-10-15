@@ -1,4 +1,4 @@
-"""ShelfShare API."""
+"""ReadCycle API."""
 
 import json
 import logging
@@ -19,15 +19,15 @@ from app.schemas import BookCreate, BookOut, BookUpdate, Reservation, Stats
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level, format="%(message)s")
-log = logging.getLogger("shelfshare")
+log = logging.getLogger("readcycle")
 
-app = FastAPI(title="ShelfShare API", version=__version__,
+app = FastAPI(title="ReadCycle API", version=__version__,
               description="Campus textbook exchange - list a book, reserve a book.")
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins.split(","),
                    allow_methods=["*"], allow_headers=["*"])
 
-BOOKS_LISTED = Counter("shelfshare_books_listed_total", "Books listed for exchange")
-BOOKS_RESERVED = Counter("shelfshare_books_reserved_total", "Books reserved")
+BOOKS_LISTED = Counter("readcycle_books_listed_total", "Books listed for exchange")
+BOOKS_RESERVED = Counter("readcycle_books_reserved_total", "Books reserved")
 Instrumentator(excluded_handlers=["/health", "/ready", "/metrics"]).instrument(app).expose(
     app, include_in_schema=False)
 

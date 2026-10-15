@@ -10,7 +10,7 @@ variable "owner" {
 variable "name" {
   description = "Prefix for every resource."
   type        = string
-  default     = "shelfshare"
+  default     = "readcycle"
 }
 
 variable "vpc_cidr" {

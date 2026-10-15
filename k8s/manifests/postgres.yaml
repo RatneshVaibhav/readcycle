@@ -3,25 +3,25 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: shelfshare-postgres
+  name: readcycle-postgres
 spec:
   clusterIP: None              # headless: stable DNS for the StatefulSet pod
-  selector: {app: shelfshare-postgres}
+  selector: {app: readcycle-postgres}
   ports:
     - {name: postgres, port: 5432}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: shelfshare-postgres
+  name: readcycle-postgres
 spec:
-  serviceName: shelfshare-postgres
+  serviceName: readcycle-postgres
   replicas: 1
   selector:
-    matchLabels: {app: shelfshare-postgres}
+    matchLabels: {app: readcycle-postgres}
   template:
     metadata:
-      labels: {app: shelfshare-postgres}
+      labels: {app: readcycle-postgres}
     spec:
       securityContext:
         fsGroup: 70            # postgres user in the alpine image
@@ -32,11 +32,11 @@ spec:
             - {name: postgres, containerPort: 5432}
           env:
             - name: POSTGRES_DB
-              valueFrom: {configMapKeyRef: {name: shelfshare-backend-config, key: DB_NAME}}
+              valueFrom: {configMapKeyRef: {name: readcycle-backend-config, key: DB_NAME}}
             - name: POSTGRES_USER
-              valueFrom: {configMapKeyRef: {name: shelfshare-backend-config, key: DB_USER}}
+              valueFrom: {configMapKeyRef: {name: readcycle-backend-config, key: DB_USER}}
             - name: POSTGRES_PASSWORD
-              valueFrom: {secretKeyRef: {name: shelfshare-db, key: password}}
+              valueFrom: {secretKeyRef: {name: readcycle-db, key: password}}
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           readinessProbe:

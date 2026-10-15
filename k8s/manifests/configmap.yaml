@@ -2,12 +2,12 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: shelfshare-backend-config
+  name: readcycle-backend-config
 data:
   APP_ENV: kubernetes
   LOG_LEVEL: INFO
-  DB_HOST: shelfshare-postgres
+  DB_HOST: readcycle-postgres
   DB_PORT: "5432"
-  DB_NAME: shelfshare
-  DB_USER: shelfshare
-  CORS_ORIGINS: http://shelfshare.localhost:8088
+  DB_NAME: readcycle
+  DB_USER: readcycle
+  CORS_ORIGINS: http://readcycle.localhost:8088

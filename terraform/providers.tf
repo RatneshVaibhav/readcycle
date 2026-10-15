@@ -15,7 +15,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project   = "shelfshare"
+      Project   = "readcycle"
       Session   = "21"
       ManagedBy = "Terraform"
       Owner     = var.owner

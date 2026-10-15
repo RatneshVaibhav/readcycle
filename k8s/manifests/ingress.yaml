@@ -2,18 +2,18 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: shelfshare
+  name: readcycle
 spec:
   ingressClassName: nginx
   rules:
-    - host: shelfshare.localhost
+    - host: readcycle.localhost
       http:
         paths:
           - path: /api
             pathType: Prefix
             backend:
-              service: {name: shelfshare-backend, port: {name: http}}
+              service: {name: readcycle-backend, port: {name: http}}
           - path: /
             pathType: Prefix
             backend:
-              service: {name: shelfshare-frontend, port: {name: http}}
+              service: {name: readcycle-frontend, port: {name: http}}

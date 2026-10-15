@@ -1,6 +1,6 @@
 # Cluster monitoring stack shared with Session 20 (helm release "kps" in namespace monitoring).
-# ShelfShare ships its own ServiceMonitor, PrometheusRule and Grafana dashboard in the Helm chart
-# (helm/shelfshare/templates/servicemonitor.yaml, prometheusrule.yaml, grafana-dashboard.yaml).
+# ReadCycle ships its own ServiceMonitor, PrometheusRule and Grafana dashboard in the Helm chart
+# (helm/readcycle/templates/servicemonitor.yaml, prometheusrule.yaml, grafana-dashboard.yaml).
 # kube-prometheus-stack 92.1.0, trimmed for a single-node kind cluster on a laptop.
 fullnameOverride: kps
 

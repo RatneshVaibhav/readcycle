@@ -19,4 +19,4 @@ postgres:
   storage: 20Gi
   storageClass: gp3
 ingress:
-  host: shelfshare.example.edu
+  host: readcycle.example.edu

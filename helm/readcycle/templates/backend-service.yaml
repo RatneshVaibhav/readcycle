@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "readcycle.name" . }}-backend
+  labels:
+    {{- include "readcycle.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  selector: {{- include "readcycle.selector" (dict "Release" .Release "component" "backend") | nindent 4 }}
+  ports:
+    - {name: http, port: 8000, targetPort: http}

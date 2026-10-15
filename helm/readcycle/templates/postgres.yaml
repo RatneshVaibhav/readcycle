@@ -2,31 +2,31 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "shelfshare.name" . }}-postgres
+  name: {{ include "readcycle.name" . }}-postgres
   labels:
-    {{- include "shelfshare.labels" . | nindent 4 }}
+    {{- include "readcycle.labels" . | nindent 4 }}
     app.kubernetes.io/component: postgres
 spec:
   clusterIP: None
-  selector: {{- include "shelfshare.selector" (dict "Release" .Release "component" "postgres") | nindent 4 }}
+  selector: {{- include "readcycle.selector" (dict "Release" .Release "component" "postgres") | nindent 4 }}
   ports:
     - {name: postgres, port: 5432}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "shelfshare.name" . }}-postgres
+  name: {{ include "readcycle.name" . }}-postgres
   labels:
-    {{- include "shelfshare.labels" . | nindent 4 }}
+    {{- include "readcycle.labels" . | nindent 4 }}
     app.kubernetes.io/component: postgres
 spec:
-  serviceName: {{ include "shelfshare.name" . }}-postgres
+  serviceName: {{ include "readcycle.name" . }}-postgres
   replicas: 1
   selector:
-    matchLabels: {{- include "shelfshare.selector" (dict "Release" .Release "component" "postgres") | nindent 6 }}
+    matchLabels: {{- include "readcycle.selector" (dict "Release" .Release "component" "postgres") | nindent 6 }}
   template:
     metadata:
-      labels: {{- include "shelfshare.selector" (dict "Release" .Release "component" "postgres") | nindent 8 }}
+      labels: {{- include "readcycle.selector" (dict "Release" .Release "component" "postgres") | nindent 8 }}
     spec:
       securityContext:
         fsGroup: 70

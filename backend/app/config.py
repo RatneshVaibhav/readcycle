@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     # ... or its parts (the password comes from a Secret, the rest from a ConfigMap)
     db_host: str = "localhost"
     db_port: int = 5432
-    db_name: str = "shelfshare"
-    db_user: str = "shelfshare"
+    db_name: str = "readcycle"
+    db_user: str = "readcycle"
     db_password: str = ""
     cors_origins: str = "*"
     build_sha: str = "local"

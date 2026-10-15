@@ -12,7 +12,7 @@ commit). No `kubectl edit` was used on the application.
 | # | What | Kind | Symptom | Root cause | Fix |
 |---|---|---|---|---|---|
 | F1 | [Database user renamed](#f1--database-user-renamed-in-the-values) | injected | new backend pod in `CrashLoopBackOff` | `POSTGRES_USER` only applies to an empty volume, so the role never existed | `git revert` |
-| F2 | [Ingress host typo](#f2--ingress-host-changed) | injected | every URL returns 404; Argo CD shows **Healthy** | Ingress rule now matches `shelfshare.local` only | `git revert` |
+| F2 | [Ingress host typo](#f2--ingress-host-changed) | injected | every URL returns 404; Argo CD shows **Healthy** | Ingress rule now matches `readcycle.local` only | `git revert` |
 | F3 | [Resources removed](#f3--backend-resources-removed) | injected | HPA `cpu: <unknown>`, app `Degraded` | HPA utilisation is a % of the CPU *request*, and there was none | `git revert` |
 | I1 | [Frontend OOMKilled after a CVE fix](#i1--frontend-oomkilled-during-the-gitops-handover) | real | frontend `CrashLoopBackOff`, `OOMKilled` | node memory overcommitted, 12 nginx workers per pod, no headroom in 48Mi | rollback via Git, then a chart fix rolled forward |
 | I2 | [Ingress admission webhook down](#i2--ingress-admission-webhook-unavailable) | real | Argo CD sync of the Ingress failed | ingress-nginx controller restarted under memory pressure | restart the controller, re-sync |
@@ -32,8 +32,8 @@ troubleshooting/inject.sh troubleshooting/01-wrong-db-user.values.yaml
 
 | Fault file | Change |
 |---|---|
-| [`01-wrong-db-user.values.yaml`](01-wrong-db-user.values.yaml) | `database.user: shelfshare_app` |
-| [`02-ingress-host-typo.values.yaml`](02-ingress-host-typo.values.yaml) | `ingress.host: shelfshare.local` |
+| [`01-wrong-db-user.values.yaml`](01-wrong-db-user.values.yaml) | `database.user: readcycle_app` |
+| [`02-ingress-host-typo.values.yaml`](02-ingress-host-typo.values.yaml) | `ingress.host: readcycle.local` |
 | [`03-hpa-without-requests.values.yaml`](03-hpa-without-requests.values.yaml) | `backend.resources: null` |
 
 The investigation method was the same every time: **symptom → what does Argo CD say → pods,
@@ -44,25 +44,25 @@ symptom is gone.**
 
 ## F1 — Database user renamed in the values
 
-**Injected:** someone "tidies up" the database user name: `database.user: shelfshare_app`.
+**Injected:** someone "tidies up" the database user name: `database.user: readcycle_app`.
 
-![fault 1 injected: the diff adds database.user shelfshare_app, Argo CD applies the commit at 16:37:43 and reports Progressing, one new backend pod is in CrashLoopBackOff while the two old pods keep running, five requests through the ingress all return 200, the backend Deployment is Progressing and the postgres StatefulSet was reconfigured](../../../utility/screenshots/session-21/24_fault1_wrong_db_user.png)
+![fault 1 injected: the diff adds database.user readcycle_app, Argo CD applies the commit at 16:37:43 and reports Progressing, one new backend pod is in CrashLoopBackOff while the two old pods keep running, five requests through the ingress all return 200, the backend Deployment is Progressing and the postgres StatefulSet was reconfigured](../../../utility/screenshots/session-21/24_fault1_wrong_db_user.png)
 
 **Identify.** Argo CD applied the commit and went `Progressing`. One new backend pod crash-loops.
 Users noticed nothing: the rolling update (`maxUnavailable: 0` for 2 replicas) keeps the two
 old pods serving, so every request still returned 200. That is the point of rolling updates
 and readiness probes, but it also means the fault is easy to miss.
 
-![investigation: the pod's events show startup probe failures and back-off, the previous container logs show psycopg OperationalError password authentication failed for user, the configmap and the postgres pod both say shelfshare_app, postgres logs say role shelfshare_app does not exist, pg_roles only has shelfshare; root cause stated; git revert pushed as 1565540; Argo CD Synced and Healthy at 16:38:55; pods all Running with DB_USER back to shelfshare; the API answers; postgres log shows Skipping initialization](../../../utility/screenshots/session-21/25_fault1_investigate_fix_1.png)
+![investigation: the pod's events show startup probe failures and back-off, the previous container logs show psycopg OperationalError password authentication failed for user, the configmap and the postgres pod both say readcycle_app, postgres logs say role readcycle_app does not exist, pg_roles only has readcycle; root cause stated; git revert pushed as 1565540; Argo CD Synced and Healthy at 16:38:55; pods all Running with DB_USER back to readcycle; the API answers; postgres log shows Skipping initialization](../../../utility/screenshots/session-21/25_fault1_investigate_fix_1.png)
 ![the postgres entrypoint skipped initialization on the existing volume](../../../utility/screenshots/session-21/25_fault1_investigate_fix_2.png)
 
 **Investigate.**
 - `kubectl describe pod` showed back-off restarts; `kubectl logs --previous` showed
-  `FATAL: password authentication failed for user "shelfshare_app"`.
+  `FATAL: password authentication failed for user "readcycle_app"`.
 - The ConfigMap (`DB_USER`) and the Postgres StatefulSet (`POSTGRES_USER`) both had the new name,
   so the chart rendered what the values asked for.
-- The Postgres log said `role "shelfshare_app" does not exist`; `pg_roles` lists only
-  `shelfshare`.
+- The Postgres log said `role "readcycle_app" does not exist`; `pg_roles` lists only
+  `readcycle`.
 
 **Root cause.** The official Postgres image applies `POSTGRES_USER`/`POSTGRES_PASSWORD` only
 when `initdb` runs on an **empty** data directory. The PVC already holds the database
@@ -70,15 +70,15 @@ when `initdb` runs on an **empty** data directory. The PVC already holds the dat
 user that does not exist.
 
 **Fix and verify.** `git revert` of the fault commit. Argo CD synced in about 30 s, the crashing
-ReplicaSet was dropped, `DB_USER=shelfshare`, the API answered. A real rename has to be a
+ReplicaSet was dropped, `DB_USER=readcycle`, the API answered. A real rename has to be a
 migration (`ALTER ROLE ... RENAME TO ...` plus a password reset), not a values change.
 
 ## F2 — Ingress host changed
 
-**Injected:** `ingress.host: shelfshare.local`.
+**Injected:** `ingress.host: readcycle.local`.
 
-![fault 2: diff adds ingress host shelfshare.local, Argo CD Synced and Healthy, but the API and UI return 404 Not Found from nginx; pods and endpoint slices are all fine; the ingress lists host shelfshare.local with both backends; the last access-log line is an older 200; asking with Host shelfshare.local works; root cause from git log; revert pushed; the ingress is back to shelfshare.localhost and the API and UI return 200](../../../utility/screenshots/session-21/26_fault2_ingress_host_1.png)
-![re-check with unique paths: the request to a host without a rule is never written to the access log, the request to shelfshare.localhost is](../../../utility/screenshots/session-21/26_fault2_ingress_host_2.png)
+![fault 2: diff adds ingress host readcycle.local, Argo CD Synced and Healthy, but the API and UI return 404 Not Found from nginx; pods and endpoint slices are all fine; the ingress lists host readcycle.local with both backends; the last access-log line is an older 200; asking with Host readcycle.local works; root cause from git log; revert pushed; the ingress is back to readcycle.localhost and the API and UI return 200](../../../utility/screenshots/session-21/26_fault2_ingress_host_1.png)
+![re-check with unique paths: the request to a host without a rule is never written to the access log, the request to readcycle.localhost is](../../../utility/screenshots/session-21/26_fault2_ingress_host_2.png)
 
 **Identify.** This is the dangerous kind: **Argo CD says Synced/Healthy, every probe passes**,
 and yet every user gets `404 Not Found`. Health checks look at the pods from inside the
@@ -87,8 +87,8 @@ cluster; nothing checks the public URL.
 **Investigate.** I went outside-in, following the request path:
 1. `curl` → 404 page from nginx, so the request reaches ingress-nginx.
 2. Pods ready, EndpointSlices have addresses → Services and Pods are fine.
-3. `kubectl get ingress` → `HOSTS shelfshare.local`.
-4. `curl -H "Host: shelfshare.local"` → the app answers. The routing rule is wrong, not the app.
+3. `kubectl get ingress` → `HOSTS readcycle.local`.
+4. `curl -H "Host: readcycle.local"` → the app answers. The routing rule is wrong, not the app.
 5. `git log -1` on the GitOps repo → the commit that changed it.
 
 The ingress-nginx access log was a misleading clue. Its last `/api/books/stats` line was a
@@ -97,7 +97,7 @@ paths: a request for a host without an Ingress rule falls to the catch-all serve
 `access_log off` in `nginx.conf`. **A request missing from the access log means no rule matched
 its Host.**
 
-**Fix and verify.** `git revert`; the Ingress was back to `shelfshare.localhost` and the API and
+**Fix and verify.** `git revert`; the Ingress was back to `readcycle.localhost` and the API and
 UI returned 200. Prevention: a smoke test against the public URL after every sync, for example a
 post-sync hook or the pipeline's `helm test` hitting the Ingress instead of the Service.
 
@@ -192,7 +192,7 @@ left, on top of the monitoring stack and an apiserver whose caches had grown dur
 worse. On EKS, the Cluster Autoscaler or Karpenter would add a node for the pending pods.
 
 ![mitigation 1 scale to 2, all pods ready again at 17:12; the first crictl stop of kube-apiserver failed with DeadlineExceeded; correction note; the API server container is 20 hours old; the retried stop worked: new container attempt 2, kube-apiserver 988 MB to 462 MB, available memory 260 MB to 458 MB](../../../utility/screenshots/session-21/30_incident_load_test_2.png)
-![everything Running again in monitoring and shelfshare](../../../utility/screenshots/session-21/30_incident_load_test_3.png)
+![everything Running again in monitoring and readcycle](../../../utility/screenshots/session-21/30_incident_load_test_3.png)
 
 **Mitigation, as it really happened.**
 1. Scale the backend to 2 by hand. The HPA had no metrics, so it did not fight back. All pods
@@ -227,7 +227,7 @@ resets: 410 (Prometheus extrapolates), against 407 listings that `traffic.sh` re
 committed to Gitea (`fa92134`), synced by Argo CD. I verified it in Grafana: 96 listings
 reported for a 90 s run that created exactly 96.
 
-![monitoring paused and Argo CD resumed; chart copied to the GitOps repo and pushed as fa92134; Argo CD Synced and Healthy; configmap labelled shelfshare-1.0.2 with the new queries; history revision 10](../../../utility/screenshots/session-21/32_dashboard_gitops_rollout.png)
+![monitoring paused and Argo CD resumed; chart copied to the GitOps repo and pushed as fa92134; Argo CD Synced and Healthy; configmap labelled readcycle-1.0.2 with the new queries; history revision 10](../../../utility/screenshots/session-21/32_dashboard_gitops_rollout.png)
 
 Side effect worth knowing: the chart bump also **restarted the backend pods**. The
 `checksum/config` annotation hashes the whole rendered ConfigMap, including the

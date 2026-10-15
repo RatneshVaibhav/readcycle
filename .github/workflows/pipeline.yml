@@ -1,4 +1,4 @@
-# Session 21 - ShelfShare end-to-end pipeline
+# Session 21 - ReadCycle end-to-end pipeline
 #
 #  backend-test ─┐                       ┌─ sast ────────┐
 #  frontend-build┴─────────────────────► ├─ sca ─────────┼─► docker-build ─► image-scan ─┐
@@ -10,7 +10,7 @@
 #                                      deploy:  DEPLOY_MODE=kind   -> throw-away kind cluster + helm upgrade --install + helm test
 #                                               DEPLOY_MODE=gitops -> commit image.tag to the GitOps repo; Argo CD rolls it out
 #
-name: Session 21 - ShelfShare pipeline
+name: Session 21 - ReadCycle pipeline
 
 on:
   push:
@@ -158,14 +158,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build both images
         run: |
-          docker build --build-arg BUILD_SHA="$GITHUB_SHA" -t shelfshare-backend:"$GITHUB_SHA" backend
-          docker build -t shelfshare-frontend:"$GITHUB_SHA" frontend
-          docker images | grep -E "shelfshare-(backend|frontend)"
+          docker build --build-arg BUILD_SHA="$GITHUB_SHA" -t readcycle-backend:"$GITHUB_SHA" backend
+          docker build -t readcycle-frontend:"$GITHUB_SHA" frontend
+          docker images | grep -E "readcycle-(backend|frontend)"
       - name: Save images
         run: |
           mkdir -p images
-          docker save shelfshare-backend:"$GITHUB_SHA" -o images/backend.tar
-          docker save shelfshare-frontend:"$GITHUB_SHA" -o images/frontend.tar
+          docker save readcycle-backend:"$GITHUB_SHA" -o images/backend.tar
+          docker save readcycle-frontend:"$GITHUB_SHA" -o images/frontend.tar
           ls -lh images
       - uses: actions/upload-artifact@v4
         with:
@@ -237,8 +237,8 @@ jobs:
       - name: Tag and push
         run: |
           for img in backend frontend; do
-            target="$REGISTRY/${GITHUB_REPOSITORY_OWNER,,}/shelfshare-$img:$GITHUB_SHA"
-            docker tag "shelfshare-$img:$GITHUB_SHA" "$target"
+            target="$REGISTRY/${GITHUB_REPOSITORY_OWNER,,}/readcycle-$img:$GITHUB_SHA"
+            docker tag "readcycle-$img:$GITHUB_SHA" "$target"
             docker push -q "$target"
             echo "pushed $target"
           done
@@ -260,11 +260,11 @@ jobs:
         run: |
           git clone -q "$GITOPS_REPO" /tmp/gitops
           cd /tmp/gitops
-          git config user.name "shelfshare-ci"
-          git config user.email "ci@shelfshare.invalid"
+          git config user.name "readcycle-ci"
+          git config user.email "ci@readcycle.invalid"
           sed -i -E "s/^(  tag: ).*/\1\"$GITHUB_SHA\"/" environments/dev/values.yaml
           git diff --stat
-          git commit -qam "Deploy shelfshare ${GITHUB_SHA::7} to dev (pipeline run $GITHUB_RUN_NUMBER)"
+          git commit -qam "Deploy readcycle ${GITHUB_SHA::7} to dev (pipeline run $GITHUB_RUN_NUMBER)"
           git push -q origin HEAD:main
           echo "dev now wants image tag $GITHUB_SHA ($(git rev-parse --short HEAD))"
 
@@ -282,18 +282,18 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           for img in backend frontend; do
-            ref="$REGISTRY/${GITHUB_REPOSITORY_OWNER,,}/shelfshare-$img:$GITHUB_SHA"
+            ref="$REGISTRY/${GITHUB_REPOSITORY_OWNER,,}/readcycle-$img:$GITHUB_SHA"
             docker pull -q "$ref" && kind load docker-image "$ref" --name ci
           done
       - name: helm upgrade --install
         if: env.DEPLOY_MODE != 'gitops'
         run: |
-          kubectl create namespace shelfshare
-          kubectl create secret generic shelfshare-db -n shelfshare --from-literal=password="$(openssl rand -hex 16)"
-          helm upgrade --install shelfshare helm/shelfshare -n shelfshare --wait --timeout 6m \
+          kubectl create namespace readcycle
+          kubectl create secret generic readcycle-db -n readcycle --from-literal=password="$(openssl rand -hex 16)"
+          helm upgrade --install readcycle helm/readcycle -n readcycle --wait --timeout 6m \
             --set image.registry="$REGISTRY" --set image.owner="${GITHUB_REPOSITORY_OWNER,,}" \
             --set image.tag="$GITHUB_SHA" --set image.pullPolicy=Never \
             --set ingress.enabled=false --set monitoring.serviceMonitor.enabled=false \
             --set monitoring.rules.enabled=false --set monitoring.dashboard.enabled=false
-          kubectl get pods -n shelfshare
-          helm test shelfshare -n shelfshare
+          kubectl get pods -n readcycle
+          helm test readcycle -n readcycle

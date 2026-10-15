@@ -1,4 +1,4 @@
-ShelfShare {{ .Values.image.tag }} is deployed as release "{{ .Release.Name }}" (revision {{ .Release.Revision }}).
+ReadCycle {{ .Values.image.tag }} is deployed as release "{{ .Release.Name }}" (revision {{ .Release.Revision }}).
 
   UI : http://{{ .Values.ingress.host }}:8088/
   API: http://{{ .Values.ingress.host }}:8088/api/books

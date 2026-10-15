@@ -1,6 +1,6 @@
 {
-  "title": "ShelfShare - Service Overview",
-  "uid": "shelfshare",
+  "title": "ReadCycle - Service Overview",
+  "uid": "readcycle",
   "schemaVersion": 39,
   "version": 2,
   "editable": false,
@@ -11,7 +11,7 @@
   },
   "tags": [
     "session21",
-    "shelfshare"
+    "readcycle"
   ],
   "panels": [
     {
@@ -153,7 +153,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "round(sum(increase(shelfshare_books_listed_total{namespace=\"__NAMESPACE__\"}[$__range])))"
+          "expr": "round(sum(increase(readcycle_books_listed_total{namespace=\"__NAMESPACE__\"}[$__range])))"
         }
       ]
     },
@@ -198,7 +198,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "round(sum(increase(shelfshare_books_reserved_total{namespace=\"__NAMESPACE__\"}[$__range])))"
+          "expr": "round(sum(increase(readcycle_books_reserved_total{namespace=\"__NAMESPACE__\"}[$__range])))"
         }
       ]
     },
@@ -296,7 +296,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "count(ALERTS{alertstate=\"firing\",alertname=~\"ShelfShare.*\"}) or vector(0)"
+          "expr": "count(ALERTS{alertstate=\"firing\",alertname=~\"ReadCycle.*\"}) or vector(0)"
         }
       ]
     },

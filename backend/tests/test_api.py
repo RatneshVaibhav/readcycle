@@ -58,5 +58,5 @@ def test_stats(client, book):
 
 def test_metrics_endpoint(client, book):
     body = client.get("/metrics").text
-    assert "shelfshare_books_listed_total" in body
+    assert "readcycle_books_listed_total" in body
     assert "http_requests_total" in body

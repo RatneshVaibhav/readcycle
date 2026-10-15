@@ -2,8 +2,8 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: {{ include "shelfshare.name" . }}-test-api
-  labels: {{- include "shelfshare.labels" . | nindent 4 }}
+  name: {{ include "readcycle.name" . }}-test-api
+  labels: {{- include "readcycle.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
@@ -16,5 +16,5 @@ spec:
   containers:
     - name: smoke
       image: busybox:1.36
-      command: ["sh", "-c", "wget -qO- http://{{ include "shelfshare.name" . }}-backend:8000/ready && wget -qO- http://{{ include "shelfshare.name" . }}-frontend/healthz"]
-      securityContext: {{- include "shelfshare.restricted" . | nindent 8 }}
+      command: ["sh", "-c", "wget -qO- http://{{ include "readcycle.name" . }}-backend:8000/ready && wget -qO- http://{{ include "readcycle.name" . }}-frontend/healthz"]
+      securityContext: {{- include "readcycle.restricted" . | nindent 8 }}

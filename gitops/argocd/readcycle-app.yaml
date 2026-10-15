@@ -1,23 +1,23 @@
 # Argo CD renders the Helm chart from the GitOps repository with the environment's values
-# and keeps the shelfshare namespace equal to it (prune + self-heal).
+# and keeps the readcycle namespace equal to it (prune + self-heal).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: shelfshare-dev
+  name: readcycle-dev
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: http://gitea-http.gitea.svc.cluster.local:3000/ratnesh/shelfshare-gitops.git
+    repoURL: http://gitea-http.gitea.svc.cluster.local:3000/ratnesh/readcycle-gitops.git
     targetRevision: main
-    path: charts/shelfshare
+    path: charts/readcycle
     helm:
-      releaseName: shelfshare
+      releaseName: readcycle
       valueFiles:
         - ../../environments/dev/values.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: shelfshare
+    namespace: readcycle
   syncPolicy:
     automated:
       prune: true

@@ -1,8 +1,8 @@
-# ShelfShare — Final DevOps Project
+# ReadCycle — Final DevOps Project
 
 **Name:** Ratnesh Vaibhav  ·  **Roll No:** 24bcs10413
 
-ShelfShare is a small campus web app where students list textbooks they no longer need,
+ReadCycle is a small campus web app where students list textbooks they no longer need,
 other students reserve them, and the owner marks them exchanged. The app is deliberately
 simple. The project is everything around it: one commit travels **Git → CI → security gate →
 registry → GitOps repository → Argo CD → Kubernetes**, is watched by Prometheus and Grafana,
@@ -41,7 +41,7 @@ images are headless-Chrome captures of the live UIs with their URL bar.
 | FastAPI backend + React frontend + PostgreSQL with migrations | [`application/`](application/) | 10 pytest tests, 95 % coverage; Alembic migration `0001` |
 | Dockerfiles (non-root, multi-stage frontend) + Compose | [`docker/`](docker/) | backend uid 10001, frontend uid 101, compose run with the full API flow |
 | Kubernetes manifests | [`kubernetes/`](kubernetes/) | StatefulSet + PVC, probes, Ingress, HPA, data survives a DB pod delete |
-| Helm chart (Ingress `/` → frontend, `/api` → backend, ≥ 2 replicas) | [`helm/shelfshare/`](helm/shelfshare/) | install, `helm test`, config-change upgrade |
+| Helm chart (Ingress `/` → frontend, `/api` → backend, ≥ 2 replicas) | [`helm/readcycle/`](helm/readcycle/) | install, `helm test`, config-change upgrade |
 | Terraform: VPC with 2 public subnets + EKS | [`terraform/`](terraform/) | plan/apply 22 resources, verified with the AWS CLI, destroy |
 | CI/CD: pytest, frontend build, both images, SHA tags, Trivy | [`.github/workflows/pipeline.yml`](.github/workflows/pipeline.yml) | 10 jobs green, images tagged with the commit SHA |
 | DevSecOps | [`security/`](security/) | 8 scans behind one gate; 42 fixable image CVEs found and fixed |
@@ -71,9 +71,9 @@ flowchart LR
   g -- pass --> gitops[(GitOps repo<br/>Gitea: environments/dev/values.yaml)]
   argo[Argo CD] -- polls every 30 s --> gitops
   argo -- helm template + apply --> k8s
-  subgraph k8s [Kubernetes namespace shelfshare]
+  subgraph k8s [Kubernetes namespace readcycle]
     direction LR
-    ing[Ingress nginx<br/>shelfshare.localhost] -- "/" --> fe[frontend<br/>nginx + React<br/>2 pods]
+    ing[Ingress nginx<br/>readcycle.localhost] -- "/" --> fe[frontend<br/>nginx + React<br/>2 pods]
     ing -- "/api" --> be[backend<br/>FastAPI<br/>HPA 2-4]
     fe -. /api proxy .-> be
     be --> pg[(PostgreSQL<br/>StatefulSet + PVC)]
@@ -116,8 +116,8 @@ final-devops-project/
 │   ├── backend/        FastAPI app (app/), Alembic migrations, pytest suite
 │   └── frontend/       React + Vite single-page app
 ├── docker/             backend.Dockerfile, frontend.Dockerfile, nginx template, docker-compose.yml
-├── kubernetes/         plain manifests + kustomization (namespace shelfshare-raw)
-├── helm/shelfshare/    the chart: app, Postgres, Ingress, HPA, ServiceMonitor, alerts, dashboard, test
+├── kubernetes/         plain manifests + kustomization (namespace readcycle-raw)
+├── helm/readcycle/    the chart: app, Postgres, Ingress, HPA, ServiceMonitor, alerts, dashboard, test
 ├── terraform/          VPC, subnets, NAT, IAM, EKS cluster + node group
 ├── .github/workflows/  pipeline.yml (copy; GitHub runs ../../.github/workflows/session-21-pipeline.yml)
 ├── security/           scanner configs, pinned tool installer, security-gate.sh, scan-local.sh
@@ -137,7 +137,7 @@ final-devops-project/
 | `POST /api/books/{id}/reserve` | reserve; `409` if it is not available |
 | `GET /api/books/stats` | totals by status, most shared courses |
 | `GET /health`, `GET /ready` | liveness (process) and readiness (database reachable) |
-| `GET /metrics` | Prometheus metrics: request rate/latency by handler and status, `shelfshare_books_listed_total`, `shelfshare_books_reserved_total` |
+| `GET /metrics` | Prometheus metrics: request rate/latency by handler and status, `readcycle_books_listed_total`, `readcycle_books_reserved_total` |
 
 Configuration comes from environment variables (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
 `DB_PASSWORD`, `CORS_ORIGINS`, `LOG_LEVEL`); see
@@ -175,7 +175,7 @@ docker compose up --build -d         # UI http://localhost:3000, API docs http:/
 
 ![a random DB password written to the git-ignored .env, compose build and up, three services healthy, migrations applied and uvicorn running, the containers run as appuser 10001 and nginx 101, image sizes 201 MB and 82 MB](../../utility/screenshots/session-21/03_compose_up.png)
 ![API flow through the frontend proxy: list empty, health and ready, five books created, reserve, mark exchanged, delete returns 204, a second reservation is refused because the book is already reserved, an invalid book is rejected by validation on all four fields, stats, the rows in Postgres and the alembic version, metrics counters](../../utility/screenshots/session-21/04_compose_api.png)
-![ShelfShare UI served by compose on localhost:3000](../../utility/screenshots/session-21/web_01_compose_ui.png)
+![ReadCycle UI served by compose on localhost:3000](../../utility/screenshots/session-21/web_01_compose_ui.png)
 ![FastAPI Swagger UI on localhost:8000/docs](../../utility/screenshots/session-21/web_02_compose_swagger.png)
 ![docker compose down -v removes containers, network and volume](../../utility/screenshots/session-21/05_compose_down.png)
 ![both images built with the commit SHA as build argument and pushed to the lab registry at localhost:5001](../../utility/screenshots/session-21/06_build_push_images.png)
@@ -183,7 +183,7 @@ docker compose up --build -d         # UI http://localhost:3000, API docs http:/
 ## 7. Kubernetes deployment
 
 Plain manifests in [`kubernetes/`](kubernetes/), applied with Kustomize into namespace
-`shelfshare-raw`: Namespace, ConfigMap, Secret (generated from the git-ignored `db.env`),
+`readcycle-raw`: Namespace, ConfigMap, Secret (generated from the git-ignored `db.env`),
 Postgres **StatefulSet** with a headless Service and a `volumeClaimTemplate`, backend and
 frontend Deployments (2 replicas each, startup/readiness/liveness probes, requests and
 limits, restricted security context), Ingress, and an HPA (2–4 replicas at 70 % CPU).
@@ -193,8 +193,8 @@ printf "password=%s\n" "$(openssl rand -hex 16)" > kubernetes/db.env
 kubectl apply -k kubernetes
 ```
 
-![db.env generated and git-ignored, the kinds rendered by kustomize, kubectl apply -k, rollouts, and every object in shelfshare-raw](../../utility/screenshots/session-21/07_k8s_raw_apply_1.png)
-![pods, services, ingress, PVC, configmap, secret and HPA in shelfshare-raw](../../utility/screenshots/session-21/07_k8s_raw_apply_2.png)
+![db.env generated and git-ignored, the kinds rendered by kustomize, kubectl apply -k, rollouts, and every object in readcycle-raw](../../utility/screenshots/session-21/07_k8s_raw_apply_1.png)
+![pods, services, ingress, PVC, configmap, secret and HPA in readcycle-raw](../../utility/screenshots/session-21/07_k8s_raw_apply_2.png)
 
 The first rollout had **backend restarts**: the backend started before the Postgres headless
 Service had a ready endpoint, so the migration failed and the container exited. I added a
@@ -202,13 +202,13 @@ Service had a ready endpoint, so the migration failed and the container exited. 
 
 ![backend pods with restarts, the previous log shows the connection failure, the endpoint was not ready yet, the init container added to backend.yaml, re-apply, 0 restarts, init container log waiting then accepting](../../utility/screenshots/session-21/08_k8s_raw_restarts_fixed.png)
 ![JSON access logs from both pods, UI and API through the ingress, a book created, the postgres pod deleted and recreated, the book is still there, the three probes, the HPA](../../utility/screenshots/session-21/09_k8s_raw_verify.png)
-![the UI through the ingress at shelfshare.localhost:8088](../../utility/screenshots/session-21/web_03_k8s_ingress_ui.png)
+![the UI through the ingress at readcycle.localhost:8088](../../utility/screenshots/session-21/web_03_k8s_ingress_ui.png)
 
 ## 8. Helm deployment
 
-[`helm/shelfshare`](helm/shelfshare/) packages the same app with everything configurable:
+[`helm/readcycle`](helm/readcycle/) packages the same app with everything configurable:
 
-- **Ingress** `shelfshare.localhost`: `/api` → backend Service, `/` → frontend Service.
+- **Ingress** `readcycle.localhost`: `/api` → backend Service, `/` → frontend Service.
 - **Backend**: HPA 2–4 replicas (so never fewer than 2), the `wait-for-db` init container, and
   a `checksum/config` annotation so a config change restarts the pods.
 - **Frontend**: 2 replicas, nginx worker count tuned to the CPU limit.
@@ -222,10 +222,10 @@ Service had a ready endpoint, so the migration failed and the container exited. 
   bigger limits, `gp3` storage, a real hostname).
 
 ```bash
-kubectl create namespace shelfshare
-kubectl create secret generic shelfshare-db -n shelfshare --from-literal=password="$(openssl rand -hex 16)"
-helm upgrade --install shelfshare helm/shelfshare -n shelfshare -f helm/shelfshare/values-dev.yaml --wait
-helm test shelfshare -n shelfshare
+kubectl create namespace readcycle
+kubectl create secret generic readcycle-db -n readcycle --from-literal=password="$(openssl rand -hex 16)"
+helm upgrade --install readcycle helm/readcycle -n readcycle -f helm/readcycle/values-dev.yaml --wait
+helm test readcycle -n readcycle
 ```
 
 ![secret created, helm lint, helm upgrade --install, the release deployed, pods, services, ingress, HPA and PVC, helm test Succeeded](../../utility/screenshots/session-21/10_helm_install.png)
@@ -233,7 +233,7 @@ helm test shelfshare -n shelfshare
 
 ## 9. Terraform infrastructure (VPC + EKS)
 
-[`terraform/`](terraform/) builds the network and the cluster ShelfShare would run on in AWS
+[`terraform/`](terraform/) builds the network and the cluster ReadCycle would run on in AWS
 (`ap-south-1`):
 
 | File | Resources |
@@ -283,7 +283,7 @@ frontend-build┴────────────────────►
   pushed**, not a rebuild.
 - **Tags:** the full commit SHA, so every running Pod can be traced to a commit (the backend
   also reports it at `/health` as `build`).
-- **Registry:** `ghcr.io/<owner>/shelfshare-{backend,frontend}` using `GITHUB_TOKEN`
+- **Registry:** `ghcr.io/<owner>/readcycle-{backend,frontend}` using `GITHUB_TOKEN`
   (`packages: write` only on the push job). In the lab the variable `REGISTRY=localhost:5001`.
 - **Deploy:** on GitHub-hosted runners there is no route to my laptop's cluster, so the default
   `DEPLOY_MODE=kind` proves the chart deploys in a fresh cluster and passes `helm test`. With
@@ -329,8 +329,8 @@ does not need. Result: **0**.
 - The backend exposes `/metrics` (prometheus-fastapi-instrumentator plus two business counters).
   It is **not** exposed through the Ingress.
 - The chart creates a **ServiceMonitor** (15 s), a **PrometheusRule** with
-  `ShelfShareBackendDown`, `ShelfShareDatabaseDown`, `ShelfShareHighErrorRate` (> 5 % 5xx)
-  and `ShelfShareHighLatency` (p95 > 500 ms), and a **Grafana dashboard** ConfigMap that the
+  `ReadCycleBackendDown`, `ReadCycleDatabaseDown`, `ReadCycleHighErrorRate` (> 5 % 5xx)
+  and `ReadCycleHighLatency` (p95 > 500 ms), and a **Grafana dashboard** ConfigMap that the
   Grafana sidecar picks up (12 panels: availability, request rate by handler, status classes,
   p50/p95/p99, HPA replicas, CPU and memory per pod, firing alerts).
 - The stack is kube-prometheus-stack, installed with
@@ -339,13 +339,13 @@ does not need. Result: **0**.
 - [`traffic.sh`](monitoring/traffic.sh) generates mixed traffic (200/201/204/404/409).
 - **Logs:** the backend writes one JSON object per request (`method`, `path`, `status`,
   `duration_ms`; probes and `/metrics` are skipped), next to uvicorn's plain lines, so
-  `kubectl logs -n shelfshare -l app.kubernetes.io/component=backend -c api --tail=-1 | grep '^{' | jq 'select(.status >= 400)'`
+  `kubectl logs -n readcycle -l app.kubernetes.io/component=backend -c api --tail=-1 | grep '^{' | jq 'select(.status >= 400)'`
   filters them (screenshot in [section 7](#7-kubernetes-deployment)). The `--tail=-1` matters:
   with a label selector, `kubectl logs` keeps only 10 lines per pod.
 
-![Argo CD paused for memory, Prometheus, Alertmanager, kube-state-metrics and Grafana started, ServiceMonitor, PrometheusRule and dashboard configmap in the shelfshare namespace, the service port and the scrape endpoint, metrics from inside a backend pod, /metrics through the ingress returns the React app and 0 metric lines](../../utility/screenshots/session-21/28_monitoring_stack.png)
+![Argo CD paused for memory, Prometheus, Alertmanager, kube-state-metrics and Grafana started, ServiceMonitor, PrometheusRule and dashboard configmap in the readcycle namespace, the service port and the scrape endpoint, metrics from inside a backend pod, /metrics through the ingress returns the React app and 0 metric lines](../../utility/screenshots/session-21/28_monitoring_stack.png)
 ![traffic started, both backend targets up, request rate by handler and method, 2xx and 4xx rates, p50 16 ms p95 92 ms p99 160 ms, business counters, the four alert rules inactive and healthy, the HPA scales 2 to 4 at 417 percent of the CPU request](../../utility/screenshots/session-21/29_traffic_promql_hpa.png)
-![Grafana ShelfShare dashboard: 4 replicas, Postgres ready, 102 books listed and 99 reserved in the range, 0 percent 5xx, no alerts, requests per handler, latency, status classes, HPA 2 to 4, CPU and memory per pod](../../utility/screenshots/session-21/web_07_grafana_dashboard_v2.png)
+![Grafana ReadCycle dashboard: 4 replicas, Postgres ready, 102 books listed and 99 reserved in the range, 0 percent 5xx, no alerts, requests per handler, latency, status classes, HPA 2 to 4, CPU and memory per pod](../../utility/screenshots/session-21/web_07_grafana_dashboard_v2.png)
 
 The 4-worker load test overloaded the laptop's node; that incident, and the two monitoring
 bugs it revealed (counters that reset, a TSDB on an emptyDir), are in
@@ -354,11 +354,11 @@ bugs it revealed (counters that reset, a TSDB on an emptyDir), are in
 ## 13. GitOps
 
 - **Git server:** Gitea inside the cluster (`gitea.localhost`) plays GitHub's role, so the
-  whole loop runs on the laptop. Repo `ratnesh/shelfshare-gitops` holds
-  `charts/shelfshare` and `environments/dev/values.yaml`. Its full history is in
-  [`gitops/shelfshare-gitops.bundle`](gitops/shelfshare-gitops.bundle)
-  (`git clone shelfshare-gitops.bundle`).
-- **Argo CD Application** [`shelfshare-app.yaml`](gitops/argocd/shelfshare-app.yaml): chart path
+  whole loop runs on the laptop. Repo `ratnesh/readcycle-gitops` holds
+  `charts/readcycle` and `environments/dev/values.yaml`. Its full history is in
+  [`gitops/readcycle-gitops.bundle`](gitops/readcycle-gitops.bundle)
+  (`git clone readcycle-gitops.bundle`).
+- **Argo CD Application** [`readcycle-app.yaml`](gitops/argocd/readcycle-app.yaml): chart path
   plus the environment values file, `automated: {prune: true, selfHeal: true}`,
   `CreateNamespace=true`, 30 s reconciliation.
 - [`bootstrap.sh`](gitops/bootstrap.sh) creates the repo, pushes the chart and values, and
@@ -368,22 +368,22 @@ bugs it revealed (counters that reset, a TSDB on an emptyDir), are in
 - The release was **handed over from Helm to Argo CD** without losing data: `helm uninstall`
   keeps the PVC and the Secret, and Argo CD adopted them.
 
-![6 books created under Helm, helm uninstall keeps the PVC and secret, bootstrap creates the repo, pushes and registers shelfshare-dev; the wait for Healthy was stopped by the frontend incident](../../utility/screenshots/session-21/16_gitops_handover.png)
+![6 books created under Helm, helm uninstall keeps the PVC and secret, bootstrap creates the repo, pushes and registers readcycle-dev; the wait for Healthy was stopped by the frontend incident](../../utility/screenshots/session-21/16_gitops_handover.png)
 
 **CI → Git → Argo CD → cluster, verified end to end.** The pipeline committed tag
-`15295481…` as `shelfshare-ci`. Argo CD synced commit `3c52022`, and every Pod runs the image
+`15295481…` as `readcycle-ci`. Argo CD synced commit `3c52022`, and every Pod runs the image
 built from commit `15295481756c` of this repository:
 
-![git log in the GitOps repo with the shelfshare-ci commit; Argo CD resumed; Synced to 3c52022 and Healthy; every pod runs the SHA-tagged images; the API answers and /health reports build 15295481756c; git rev-parse in this repo gives the same SHA; argocd app history with four revisions](../../utility/screenshots/session-21/23_gitops_cd.png)
-![Argo CD UI: shelfshare-dev Healthy, Synced to main 3c52022, auto sync enabled, last sync by shelfshare-ci for the pipeline commit, resource tree with configmaps, services, deployments, replica sets and pods](../../utility/screenshots/session-21/web_04_argocd_app_tree.png)
-![Gitea commit list: shelfshare-ci deploy commit on top of the roll-forward, rollback and bootstrap commits](../../utility/screenshots/session-21/web_05_gitea_commits.png)
+![git log in the GitOps repo with the readcycle-ci commit; Argo CD resumed; Synced to 3c52022 and Healthy; every pod runs the SHA-tagged images; the API answers and /health reports build 15295481756c; git rev-parse in this repo gives the same SHA; argocd app history with four revisions](../../utility/screenshots/session-21/23_gitops_cd.png)
+![Argo CD UI: readcycle-dev Healthy, Synced to main 3c52022, auto sync enabled, last sync by readcycle-ci for the pipeline commit, resource tree with configmaps, services, deployments, replica sets and pods](../../utility/screenshots/session-21/web_04_argocd_app_tree.png)
+![Gitea commit list: readcycle-ci deploy commit on top of the roll-forward, rollback and bootstrap commits](../../utility/screenshots/session-21/web_05_gitea_commits.png)
 
 Final state after the troubleshooting challenge (11 commits, every change made through Git):
 
 ![HPA back to 2 replicas; monitoring paused with its PVC kept; Argo CD Synced to fa92134 and Healthy; deployments 2/2, statefulset 1/1, HPA, ingress and PVC; all pods on the SHA-tagged images; UI and API 200; the 11-commit GitOps history](../../utility/screenshots/session-21/35_final_state_1.png)
 ![the GitOps history continued](../../utility/screenshots/session-21/35_final_state_2.png)
-![the bundle created and verified, cloned with 11 commits and the same HEAD as Gitea, gitleaks finds no leaks, the chart in the bundle is identical to helm/shelfshare, the final dev values](../../utility/screenshots/session-21/36_gitops_bundle.png)
-![ShelfShare served by the GitOps-managed release at shelfshare.localhost:8088](../../utility/screenshots/session-21/web_08_app_via_gitops.png)
+![the bundle created and verified, cloned with 11 commits and the same HEAD as Gitea, gitleaks finds no leaks, the chart in the bundle is identical to helm/readcycle, the final dev values](../../utility/screenshots/session-21/36_gitops_bundle.png)
+![ReadCycle served by the GitOps-managed release at readcycle.localhost:8088](../../utility/screenshots/session-21/web_08_app_via_gitops.png)
 
 ## 14. Troubleshooting
 

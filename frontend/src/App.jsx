@@ -66,7 +66,7 @@ export default function App() {
       setStats(s);
       setError("");
     } catch (e) {
-      setError(`Cannot reach the ShelfShare API (${e.message}).`);
+      setError(`Cannot reach the ReadCycle API (${e.message}).`);
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,7 @@ export default function App() {
         <div className="brand">
           <img src="/favicon.svg" alt="" width="36" height="36" />
           <div>
-            <h1>ShelfShare</h1>
+            <h1>ReadCycle</h1>
             <p>Lend and reserve textbooks with students on your campus</p>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function App() {
           </aside>
         )}
       </main>
-      <footer className="foot">ShelfShare · Session 21 final DevOps project · Ratnesh Vaibhav</footer>
+      <footer className="foot">ReadCycle · Session 21 final DevOps project · Ratnesh Vaibhav</footer>
     </div>
   );
 }

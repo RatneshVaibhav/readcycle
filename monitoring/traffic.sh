@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# traffic.sh [seconds] [workers] - mixed traffic against the ShelfShare API through the ingress:
+# traffic.sh [seconds] [workers] - mixed traffic against the ReadCycle API through the ingress:
 # searches and stats (200), unknown books (404), listings that are created, reserved and
 # deleted again (201/200/204), so every panel of the Grafana dashboard has data.
 set -u
-BASE="${BASE:-http://shelfshare.localhost:8088}"
+BASE="${BASE:-http://readcycle.localhost:8088}"
 DURATION="${1:-120}"; WORKERS="${2:-2}"
 JSON=(-H "Content-Type: application/json")
 

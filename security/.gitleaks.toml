@@ -1,5 +1,5 @@
 # Gitleaks configuration for the final project
-title = "shelfshare secret scanning"
+title = "readcycle secret scanning"
 
 [extend]
 useDefault = true
