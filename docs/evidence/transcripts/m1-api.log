@@ -1,0 +1,61 @@
+#CWD ~/readcycle
+$ curl -s localhost:8000/health; echo; curl -s localhost:8000/ready; echo
+{"status":"ok","version":"1.0.0","build":"local"}
+{"status":"ready"}
+
+$ R=$(mktemp); req() { curl -s -o "$R" -w "%{http_code}" -H "Content-Type: application/json" "$@"; }
+add() { printf "POST   /api/books           -> %s  " "$(req -X POST localhost:8000/api/books -d "$1")"; jq -r "\"#\(.id) \(.title) [\(.course_code)]\"" "$R"; }
+add "{\"title\":\"Operating System Concepts\",\"author\":\"Silberschatz, Galvin, Gagne\",\"course_code\":\"CS301\",\"owner_name\":\"Ratnesh\"}"
+add "{\"title\":\"Computer Networks\",\"author\":\"Andrew S. Tanenbaum\",\"course_code\":\"CS305\",\"condition\":\"fair\",\"owner_name\":\"Aditi\"}"
+add "{\"title\":\"Introduction to Algorithms\",\"author\":\"Cormen et al.\",\"course_code\":\"CS201\",\"condition\":\"new\",\"owner_name\":\"Kabir\"}"
+add "{\"title\":\"Database System Concepts\",\"author\":\"Korth, Sudarshan\",\"course_code\":\"CS301\",\"condition\":\"worn\",\"owner_name\":\"Meera\"}"
+add "{\"title\":\"Linear Algebra Done Right\",\"author\":\"Sheldon Axler\",\"course_code\":\"MA102\",\"owner_name\":\"Ishaan\"}"
+add "{\"title\":\"Probability and Statistics\",\"author\":\"Sheldon Ross\",\"course_code\":\"MA201\",\"owner_name\":\"Riya\"}"
+POST   /api/books           -> 201  #1 Operating System Concepts [CS301]
+POST   /api/books           -> 201  #2 Computer Networks [CS305]
+POST   /api/books           -> 201  #3 Introduction to Algorithms [CS201]
+POST   /api/books           -> 201  #4 Database System Concepts [CS301]
+POST   /api/books           -> 201  #5 Linear Algebra Done Right [MA102]
+POST   /api/books           -> 201  #6 Probability and Statistics [MA201]
+
+$ printf "GET    /api/books           -> %s\n" "$(req localhost:8000/api/books)"; jq -r ".[] | \"   #\(.id) \(.title) [\(.course_code)] \(.status)\"" "$R"
+GET    /api/books           -> 200
+   #6 Probability and Statistics [MA201] available
+   #5 Linear Algebra Done Right [MA102] available
+   #4 Database System Concepts [CS301] available
+   #3 Introduction to Algorithms [CS201] available
+   #2 Computer Networks [CS305] available
+   #1 Operating System Concepts [CS301] available
+
+$ printf "PUT    /api/books/3         -> %s  " "$(req -X PUT localhost:8000/api/books/3 -d "{\"status\":\"exchanged\"}")"; jq -c "{id, status}" "$R"
+printf "POST   /api/books/2/reserve -> %s  " "$(req -X POST localhost:8000/api/books/2/reserve -d "{\"reserved_by\":\"Arjun\"}")"; jq -c "{id, status, reserved_by}" "$R"
+printf "POST   /api/books/2/reserve -> %s  " "$(req -X POST localhost:8000/api/books/2/reserve -d "{\"reserved_by\":\"Neha\"}")"; jq -c . "$R"
+printf "DELETE /api/books/6         -> %s\n" "$(req -X DELETE localhost:8000/api/books/6)"
+printf "GET    /api/books/6         -> %s  " "$(req localhost:8000/api/books/6)"; jq -c . "$R"
+printf "POST   /api/books (invalid) -> %s  " "$(req -X POST localhost:8000/api/books -d "{\"title\":\"X\",\"course_code\":\"bad\"}")"; jq -c "[.detail[].loc[-1]]" "$R"
+PUT    /api/books/3         -> 200  {"id":3,"status":"exchanged"}
+POST   /api/books/2/reserve -> 200  {"id":2,"status":"reserved","reserved_by":"Arjun"}
+POST   /api/books/2/reserve -> 409  {"detail":"book is already reserved"}
+DELETE /api/books/6         -> 204
+GET    /api/books/6         -> 404  {"detail":"book not found"}
+POST   /api/books (invalid) -> 422  ["title","author","course_code","owner_name"]
+
+$ curl -s localhost:8000/api/books/stats | jq -c .
+{"total":5,"by_status":{"available":3,"reserved":1,"exchanged":1},"top_courses":[{"course_code":"CS301","books":2},{"course_code":"MA102","books":1},{"course_code":"CS305","books":1},{"course_code":"CS201","books":1}]}
+
+$ docker compose exec db psql -U readcycle -d readcycle -c "select id, title, course_code, status, reserved_by from books order by id" -c "select version_num from alembic_version"
+ id |           title            | course_code |  status   | reserved_by 
+----+----------------------------+-------------+-----------+-------------
+  1 | Operating System Concepts  | CS301       | available | 
+  2 | Computer Networks          | CS305       | reserved  | Arjun
+  3 | Introduction to Algorithms | CS201       | exchanged | 
+  4 | Database System Concepts   | CS301       | available | 
+  5 | Linear Algebra Done Right  | MA102       | available | 
+(5 rows)
+
+ version_num 
+-------------
+ 0001
+(1 row)
+
+

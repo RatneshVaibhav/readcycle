@@ -1,0 +1,54 @@
+#CWD ~/readcycle
+$ cp .env.example .env && sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=$(openssl rand -hex 16)/" .env && git check-ignore -q .env && echo ".env created with a random DB password (git-ignored, never committed)"
+.env created with a random DB password (git-ignored, never committed)
+
+$ docker compose up --build -d 2>&1 | grep -vE "^#[0-9]+ (sha256|extracting|resolve|\[internal\]|DONE 0\.0s)" | tail -n 28
+#33 exporting manifest list sha256:05e1a1658be71b954b5e5294435ada3e11a1908e5b25835b967f51e65516ceb2 0.0s done
+#33 naming to docker.io/library/readcycle-frontend:compose done
+#33 unpacking to docker.io/library/readcycle-frontend:compose 0.0s done
+#33 DONE 0.2s
+
+#34 [frontend] resolving provenance for metadata file
+ Image readcycle-backend:compose Built 
+ Image readcycle-frontend:compose Built 
+ Network readcycle_default Creating 
+ Network readcycle_default Created 
+ Volume readcycle_db-data Creating 
+ Volume readcycle_db-data Created 
+ Container readcycle-db-1 Creating 
+ Container readcycle-db-1 Created 
+ Container readcycle-backend-1 Creating 
+ Container readcycle-backend-1 Created 
+ Container readcycle-frontend-1 Creating 
+ Container readcycle-frontend-1 Created 
+ Container readcycle-db-1 Starting 
+ Container readcycle-db-1 Started 
+ Container readcycle-db-1 Waiting 
+ Container readcycle-db-1 Healthy 
+ Container readcycle-backend-1 Starting 
+ Container readcycle-backend-1 Started 
+ Container readcycle-backend-1 Waiting 
+ Container readcycle-backend-1 Healthy 
+ Container readcycle-frontend-1 Starting 
+ Container readcycle-frontend-1 Started 
+
+$ docker compose ps --format "table {{.Service}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+SERVICE    IMAGE                        STATUS                    PORTS
+backend    readcycle-backend:compose    Up 5 seconds (healthy)    0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+db         postgres:17-alpine           Up 11 seconds (healthy)   5432/tcp
+frontend   readcycle-frontend:compose   Up Less than a second     0.0.0.0:3000->8080/tcp, [::]:3000->8080/tcp
+
+$ docker compose logs backend | grep -E "Running upgrade|Uvicorn running|Application startup"
+backend-1  | INFO  [alembic.runtime.migration] Running upgrade  -> 0001, create books table
+backend-1  | INFO:     Application startup complete.
+backend-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+
+$ echo "backend runs as: $(docker compose exec backend id)"; echo "frontend runs as: $(docker compose exec frontend id)"
+backend runs as: uid=10001(appuser) gid=10001(appuser) groups=10001(appuser)
+frontend runs as: uid=101(nginx) gid=101(nginx) groups=101(nginx)
+
+$ docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep -E "REPOSITORY|readcycle-(backend|frontend)"
+REPOSITORY                                                TAG                                        SIZE
+readcycle-frontend                                        compose                                    111MB
+readcycle-backend                                         compose                                    201MB
+

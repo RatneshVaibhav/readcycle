@@ -1,0 +1,21 @@
+#CWD ~/readcycle
+$ curl -s -o /dev/null -w "GET /metrics -> HTTP %{http_code}, Content-Type: %{content_type}\n" http://localhost:8000/metrics
+GET /metrics -> HTTP 200, Content-Type: text/plain; version=1.0.0; charset=utf-8
+
+$ curl -s http://localhost:8000/metrics | grep -E "^# (HELP|TYPE) (readcycle_books_listed_total|http_requests_total) |^readcycle_books_(listed|reserved)_total |^http_requests_total\{" | head -16
+# HELP readcycle_books_listed_total Books listed for exchange
+# TYPE readcycle_books_listed_total counter
+readcycle_books_listed_total 6.0
+readcycle_books_reserved_total 1.0
+# HELP http_requests_total Total number of requests by method, status and handler.
+# TYPE http_requests_total counter
+http_requests_total{handler="/api/books",method="POST",status="2xx"} 6.0
+http_requests_total{handler="/api/books",method="GET",status="2xx"} 1.0
+http_requests_total{handler="/api/books/{book_id}",method="PUT",status="2xx"} 1.0
+http_requests_total{handler="/api/books/{book_id}/reserve",method="POST",status="2xx"} 1.0
+http_requests_total{handler="/api/books/{book_id}/reserve",method="POST",status="4xx"} 1.0
+http_requests_total{handler="/api/books/{book_id}",method="DELETE",status="2xx"} 1.0
+http_requests_total{handler="/api/books/{book_id}",method="GET",status="4xx"} 1.0
+http_requests_total{handler="/api/books",method="POST",status="4xx"} 1.0
+http_requests_total{handler="/api/books/stats",method="GET",status="2xx"} 1.0
+
