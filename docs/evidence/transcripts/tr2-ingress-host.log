@@ -1,0 +1,62 @@
+#CWD ~/readcycle
+$ troubleshooting/inject.sh troubleshooting/02-ingress-host-typo.values.yaml && git show --format= HEAD | tail -n +5
+61c4873 Fault 2 - the ingress host is changed to a name nobody uses.
+@@ -9,3 +9,5 @@ backend:
+   env:
+     APP_ENV: development
+     LOG_LEVEL: INFO
++ingress:
++  host: readcycle.local
+
+$ until [ "$(kubectl get application readcycle-dev -n argocd -o jsonpath="{.status.sync.revision}/{.status.health.status}")" = "$(git rev-parse HEAD)/Healthy" ] && [ "$(kubectl get ingress readcycle -n readcycle -o jsonpath="{.spec.rules[0].host}")" = readcycle.local ]; do sleep 3; done; date +%T; argocd app get readcycle-dev | grep -E "^(Sync|Health) Status"; echo "^ Argo CD and every probe say all is well..."
+09:02:04
+Sync Status:        Synced to main (61c4873)
+Health Status:      Healthy
+^ Argo CD and every probe say all is well...
+
+$ curl -s -o /dev/null -w "UI   http://readcycle.localhost:8088/          -> HTTP %{http_code}\n" http://readcycle.localhost:8088/; curl -s -o /dev/null -w "API  http://readcycle.localhost:8088/api/books -> HTTP %{http_code}\n" http://readcycle.localhost:8088/api/books
+UI   http://readcycle.localhost:8088/          -> HTTP 404
+API  http://readcycle.localhost:8088/api/books -> HTTP 404
+
+$ kubectl get pods,endpointslices -n readcycle --no-headers | awk "{print \$1, \$2, \$3}" | head -8
+pod/readcycle-backend-7d4468c45d-tcld9 1/1 Running
+pod/readcycle-backend-7d4468c45d-wlqgl 1/1 Running
+pod/readcycle-frontend-5cc5f74b75-82mqf 1/1 Running
+pod/readcycle-frontend-5cc5f74b75-dmbgl 1/1 Running
+pod/readcycle-postgres-0 1/1 Running
+endpointslice.discovery.k8s.io/readcycle-backend-4tmdx IPv4 8000
+endpointslice.discovery.k8s.io/readcycle-frontend-nszlw IPv4 8080
+endpointslice.discovery.k8s.io/readcycle-postgres-hb8hk IPv4 5432
+
+$ kubectl get ingress -n readcycle; kubectl describe ingress readcycle -n readcycle | sed -n "/^Rules/,/^Annotations/p" | head -6
+NAME        CLASS   HOSTS             ADDRESS     PORTS   AGE
+readcycle   nginx   readcycle.local   localhost   80      14m
+Rules:
+  Host             Path  Backends
+  ----             ----  --------
+  readcycle.local  
+                   /api   readcycle-backend:http (10.244.0.40:8000,10.244.0.41:8000)
+                   /      readcycle-frontend:http (10.244.0.33:8080,10.244.0.35:8080)
+
+$ P=/probe-$RANDOM; for h in readcycle.localhost readcycle.local; do printf "%-20s -> HTTP %s, ingress access-log lines: " "$h" "$(curl -s -o /dev/null -w "%{http_code}" -H "Host: $h" http://localhost:8088$P)"; sleep 1; kubectl logs -n ingress-nginx deploy/ingress-nginx-controller --since=1m | grep -c "GET $P "; done; echo "^ the unmatched host is not even logged: nginx catch-all server has access_log off"
+readcycle.localhost  -> HTTP 404, ingress access-log lines: 0
+readcycle.local      -> HTTP 200, ingress access-log lines: 1
+^ the unmatched host is not even logged: nginx catch-all server has access_log off
+
+$ git log -1 --format="%h %an %ar: %s" -- gitops/environments/dev/values.yaml; echo "ROOT CAUSE: that commit set ingress.host to readcycle.local; users type readcycle.localhost, so no Ingress rule matches and ingress-nginx serves its default 404."
+61c4873 Ratnesh Vaibhav 77 seconds ago: Fault 2 - the ingress host is changed to a name nobody uses.
+ROOT CAUSE: that commit set ingress.host to readcycle.local; users type readcycle.localhost, so no Ingress rule matches and ingress-nginx serves its default 404.
+
+$ git revert --no-edit HEAD && git push -q && git log --oneline -1
+[main 138ff2d] Revert "Fault 2 - the ingress host is changed to a name nobody uses."
+ Date: Fri Oct 16 09:02:08 2026 +0530
+ 1 file changed, 2 deletions(-)
+138ff2d Revert "Fault 2 - the ingress host is changed to a name nobody uses."
+
+$ until [ "$(kubectl get ingress readcycle -n readcycle -o jsonpath="{.spec.rules[0].host}")" = readcycle.localhost ] && [ "$(curl -s -o /dev/null -w "%{http_code}" http://readcycle.localhost:8088/api/books)" = 200 ]; do sleep 3; done; date +%T; kubectl get ingress -n readcycle; curl -s -o /dev/null -w "UI -> HTTP %{http_code}\n" http://readcycle.localhost:8088/; curl -s http://readcycle.localhost:8088/api/books/stats | jq -c "{total}"
+09:03:17
+NAME        CLASS   HOSTS                 ADDRESS     PORTS   AGE
+readcycle   nginx   readcycle.localhost   localhost   80      15m
+UI -> HTTP 200
+{"total":5}
+

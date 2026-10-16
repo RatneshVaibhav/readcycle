@@ -1,0 +1,44 @@
+#CWD ~/readcycle
+$ kubectl get hpa -n readcycle
+NAME                REFERENCE                      TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+readcycle-backend   Deployment/readcycle-backend   cpu: 9%/70%   2         4         2          15m
+
+$ troubleshooting/inject.sh troubleshooting/03-hpa-without-requests.values.yaml && git show --format= HEAD | tail -n +5
+556f29a Fault 3 - "simplify" the backend by dropping its resource settings.
+@@ -9,3 +9,4 @@ backend:
+   env:
+     APP_ENV: development
+     LOG_LEVEL: INFO
++  resources: null
+
+$ until [ "$(kubectl get application readcycle-dev -n argocd -o jsonpath="{.status.sync.revision}")" = "$(git rev-parse HEAD)" ] && kubectl rollout status deploy/readcycle-backend -n readcycle --timeout=300s >/dev/null && kubectl describe hpa readcycle-backend -n readcycle | grep -q "missing request for cpu"; do sleep 5; done; date +%T; kubectl get hpa -n readcycle
+09:04:41
+NAME                REFERENCE                      TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
+readcycle-backend   Deployment/readcycle-backend   cpu: <unknown>/70%   2         4         2          17m
+
+$ kubectl describe hpa readcycle-backend -n readcycle | grep -E "ScalingActive" | cut -c1-190; argocd app get readcycle-dev | grep -E "^Health Status|HorizontalPodAutoscaler"
+  ScalingActive   False   FailedGetResourceMetric  the HPA was unable to compute the replica count: failed to get cpu utilization: missing request for cpu in container api of Pod readcycle-b
+Health Status:      Degraded
+autoscaling            HorizontalPodAutoscaler  readcycle  readcycle-backend    Synced  Degraded        horizontalpodautoscaler.autoscaling/readcycle-backend unchanged
+
+$ kubectl get pod -n readcycle -l app.kubernetes.io/component=backend -o jsonpath="{range .items[*]}{.metadata.name}  qos={.status.qosClass}  api.resources={.spec.containers[0].resources}{\"\n\"}{end}"
+readcycle-backend-76fc847dd7-qcmx5  qos=Burstable  api.resources={}
+readcycle-backend-76fc847dd7-vzc4f  qos=Burstable  api.resources={}
+
+$ echo "ROOT CAUSE: the HPA target is 70% of the CPU *request*; with backend.resources null the container has no request, so utilisation cannot be computed and the HPA can never scale (the memory limit is gone too)."
+ROOT CAUSE: the HPA target is 70% of the CPU *request*; with backend.resources null the container has no request, so utilisation cannot be computed and the HPA can never scale (the memory limit is gone too).
+
+$ git revert --no-edit HEAD && git push -q && git log --oneline -1
+[main ecc66dd] Revert "Fault 3 - "simplify" the backend by dropping its resource settings."
+ Date: Fri Oct 16 09:04:42 2026 +0530
+ 1 file changed, 1 deletion(-)
+ecc66dd Revert "Fault 3 - "simplify" the backend by dropping its resource settings."
+
+$ until kubectl get hpa readcycle-backend -n readcycle -o jsonpath="{.status.currentMetrics[0].resource.current.averageUtilization}" | grep -q "[0-9]" && [ "$(kubectl get application readcycle-dev -n argocd -o jsonpath="{.status.sync.revision}/{.status.health.status}")" = "$(git rev-parse HEAD)/Healthy" ]; do sleep 5; done; date +%T; kubectl get hpa -n readcycle; kubectl get hpa readcycle-backend -n readcycle -o jsonpath="{range .status.conditions[*]}{.type}={.status} ({.reason}){\"\n\"}{end}" | grep ScalingActive; argocd app get readcycle-dev | grep -E "^(Sync|Health) Status"
+09:06:28
+NAME                REFERENCE                      TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+readcycle-backend   Deployment/readcycle-backend   cpu: 7%/70%   2         4         2          18m
+ScalingActive=True (ValidMetricFound)
+Sync Status:        Synced to main (ecc66dd)
+Health Status:      Healthy
+

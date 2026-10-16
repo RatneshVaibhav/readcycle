@@ -1,0 +1,59 @@
+#CWD ~/readcycle
+$ cat troubleshooting/01-wrong-db-user.values.yaml
+# Fault 1 - a "harmless" rename of the database user in the environment values.
+# The database (created on first start) still only knows the user "readcycle".
+database:
+  user: readcycle_app
+
+$ troubleshooting/inject.sh troubleshooting/01-wrong-db-user.values.yaml && git show --format= HEAD | tail -n +5
+a31fd3f Fault 1 - a "harmless" rename of the database user in the environment values.
+@@ -9,3 +9,5 @@ backend:
+   env:
+     APP_ENV: development
+     LOG_LEVEL: INFO
++database:
++  user: readcycle_app
+
+$ until [ "$(kubectl get application readcycle-dev -n argocd -o jsonpath="{.status.sync.revision}")" = "$(git rev-parse HEAD)" ]; do sleep 3; done; date +"%T Argo CD applied the bad commit"; until kubectl get pods -n readcycle | grep -q CrashLoopBackOff; do sleep 3; done; date +%T; kubectl get pods -n readcycle
+08:59:42 Argo CD applied the bad commit
+09:00:11
+NAME                                  READY   STATUS             RESTARTS     AGE
+readcycle-backend-7c4d99794c-b545l    0/1     CrashLoopBackOff   1 (5s ago)   31s
+readcycle-backend-856cc9455b-5qfcg    1/1     Running            0            3m32s
+readcycle-backend-856cc9455b-zz7c7    1/1     Running            0            2m57s
+readcycle-frontend-5cc5f74b75-82mqf   1/1     Running            0            3m14s
+readcycle-frontend-5cc5f74b75-dmbgl   1/1     Running            0            3m32s
+readcycle-postgres-0                  1/1     Running            0            30s
+
+$ for i in 1 2 3 4 5; do curl -s -o /dev/null -w "%{http_code} " http://readcycle.localhost:8088/api/books/stats; done; echo "<- users are still served by the old pods (rolling update)"; argocd app get readcycle-dev | grep -E "^Health Status|Deployment .*readcycle-backend"
+200 200 200 200 200 <- users are still served by the old pods (rolling update)
+Health Status:      Progressing
+apps                   Deployment               readcycle  readcycle-backend    Synced  Progressing        deployment.apps/readcycle-backend configured
+
+$ POD=$(kubectl get pods -n readcycle -l app.kubernetes.io/component=backend -o jsonpath="{.items[?(@.status.containerStatuses[0].restartCount>0)].metadata.name}"); kubectl logs $POD -n readcycle -c api --previous | grep -oE "FATAL: .*" | head -1
+FATAL:  password authentication failed for user "readcycle_app"
+
+$ kubectl get configmap readcycle-backend -n readcycle -o jsonpath="DB_USER={.data.DB_USER}{\"\n\"}"; kubectl logs -n readcycle readcycle-postgres-0 | grep -m1 "Skipping initialization"; kubectl exec -n readcycle readcycle-postgres-0 -- psql -U readcycle -d readcycle -Atc "select rolname from pg_roles where rolname like 'readcycle%'"
+DB_USER=readcycle_app
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+readcycle
+
+$ echo "ROOT CAUSE: POSTGRES_USER only creates the role when the data volume is empty; this volume already holds the database, so the role readcycle_app never existed."
+ROOT CAUSE: POSTGRES_USER only creates the role when the data volume is empty; this volume already holds the database, so the role readcycle_app never existed.
+
+$ git revert --no-edit HEAD && git push -q && git log --oneline -1
+[main 2cc00b0] Revert "Fault 1 - a "harmless" rename of the database user in the environment values."
+ Date: Fri Oct 16 09:00:13 2026 +0530
+ 1 file changed, 2 deletions(-)
+2cc00b0 Revert "Fault 1 - a "harmless" rename of the database user in the environment values."
+
+$ until [ "$(kubectl get application readcycle-dev -n argocd -o jsonpath="{.status.sync.revision}/{.status.health.status}")" = "$(git rev-parse HEAD)/Healthy" ] && ! kubectl get pods -n readcycle | grep -q CrashLoop; do sleep 3; done; date +%T; kubectl get pods -n readcycle; curl -s http://readcycle.localhost:8088/api/books/stats | jq -c "{total}"
+09:00:31
+NAME                                  READY   STATUS    RESTARTS   AGE
+readcycle-backend-856cc9455b-5qfcg    1/1     Running   0          3m52s
+readcycle-backend-856cc9455b-zz7c7    1/1     Running   0          3m17s
+readcycle-frontend-5cc5f74b75-82mqf   1/1     Running   0          3m34s
+readcycle-frontend-5cc5f74b75-dmbgl   1/1     Running   0          3m52s
+readcycle-postgres-0                  1/1     Running   0          6s
+{"total":5}
+
