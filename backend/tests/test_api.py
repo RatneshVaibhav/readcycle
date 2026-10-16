@@ -60,3 +60,10 @@ def test_metrics_endpoint(client, book):
     body = client.get("/metrics").text
     assert "readcycle_books_listed_total" in body
     assert "http_requests_total" in body
+
+
+def test_version_reports_the_build(client):
+    res = client.get("/api/version")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["version"] and body["build"] == "local"

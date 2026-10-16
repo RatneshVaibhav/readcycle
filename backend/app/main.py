@@ -56,6 +56,12 @@ def health():
     return {"status": "ok", "version": __version__, "build": settings.build_sha[:12]}
 
 
+@app.get("/api/version", tags=["ops"])
+def version():
+    """Which build is serving: the git commit the image was built from (shown in the UI footer)."""
+    return {"version": __version__, "build": settings.build_sha[:12]}
+
+
 @app.get("/ready", tags=["ops"])
 def ready(response: Response, db: Session = Depends(get_db)):
     """Readiness: the database answers."""

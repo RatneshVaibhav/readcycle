@@ -55,6 +55,7 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [build, setBuild] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -73,6 +74,8 @@ export default function App() {
   }, [status, query]);
 
   useEffect(() => { load(); }, [load]);
+  // the commit this deployment was built from: changes after every pipeline rollout
+  useEffect(() => { api.version().then((v) => setBuild(v.build)).catch(() => {}); }, []);
 
   const run = (action) => async (...args) => {
     try { await action(...args); await load(); } catch (e) { setError(e.message); }
@@ -159,7 +162,10 @@ export default function App() {
           </aside>
         )}
       </main>
-      <footer className="foot">ReadCycle · Session 21 final DevOps project · Ratnesh Vaibhav</footer>
+      <footer className="foot">
+        ReadCycle · Session 21 final DevOps project · Ratnesh Vaibhav
+        {build && <> · build <code className="build">{build.slice(0, 7)}</code></>}
+      </footer>
     </div>
   );
 }

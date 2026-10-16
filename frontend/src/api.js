@@ -20,4 +20,5 @@ export const api = {
   update: (id, changes) => request(`/api/books/${id}`, { method: "PUT", body: JSON.stringify(changes) }),
   reserve: (id, name) => request(`/api/books/${id}/reserve`, { method: "POST", body: JSON.stringify({ reserved_by: name }) }),
   remove: (id) => request(`/api/books/${id}`, { method: "DELETE" }),
+  version: () => request("/api/version"),
 };

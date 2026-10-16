@@ -64,6 +64,7 @@ input, select { font: inherit; padding: 8px 10px; border: 1px solid var(--line);
 .courses li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--line); }
 .muted { color: var(--muted); }
 .foot { margin-top: 36px; color: var(--muted); font-size: 0.85rem; text-align: center; }
+.foot .build { font-family: ui-monospace, monospace; background: rgba(0, 0, 0, 0.06); padding: 1px 6px; border-radius: 4px; }
 @media (max-width: 760px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
   .layout { grid-template-columns: 1fr; }
