@@ -98,7 +98,7 @@ check M4 "docker compose up --build and localhost:3000" evidence m4-compose-up.p
 check M5 "green Actions run and GHCR packages" evidence web-m5-actions-run-green.png web-m5-ghcr-readcycle-backend.png web-m5-ghcr-readcycle-frontend.png
 check M6 "Trivy output from a pipeline run" evidence m6-trivy-in-pipeline.png
 check M7 "terraform plan, AWS Console VPC + EKS, terraform destroy" \
-  evidence m7-terraform-plan.png aws-m7-console-vpc.png aws-m7-console-eks-cluster.png m7-terraform-destroy.png
+  evidence m7-terraform-plan.png aws-m7-console-vpc.png aws-m7-console-eks-cluster.png m7-terraform-destroy_1.png
 check M8 "kubectl get pods / svc, helm list, app through the Ingress" \
   evidence m8-eks-helm-install.png web-m8-eks-app-via-ingress.png
 check M9 "curl /metrics, Prometheus targets UP, Grafana dashboard" \

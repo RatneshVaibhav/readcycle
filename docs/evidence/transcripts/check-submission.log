@@ -1,0 +1,62 @@
+#CWD ~/readcycle
+$ scripts/check-submission.sh
+== M1 Application
+  PASS  M1   backend/app, alembic migration, requirements.txt, frontend/, docker-compose.yml
+  PASS  M1   REST endpoints with GET, POST, PUT and DELETE (at least 4)
+  PASS  M1   /health endpoint
+== M2 Testing
+  PASS  M2   pytest.ini or conftest.py present
+  PASS  M2   tests use an in-memory SQLite database, not PostgreSQL
+  PASS  M2   pytest passes with at least 5 tests
+== M3 Git and GitHub
+  PASS  M3   at least 10 commits
+  PASS  M3   .gitignore excludes .env, __pycache__, node_modules, .venv
+  PASS  M3   GitHub repository is public
+== M4 Docker
+  PASS  M4   backend/Dockerfile and frontend/Dockerfile
+  PASS  M4   frontend/Dockerfile is multi-stage (Node build + nginx runtime)
+  PASS  M4   both images end with a non-root USER
+  PASS  M4   docker-compose.yml defines frontend, backend and a PostgreSQL service
+== M5 CI/CD
+  PASS  M5   workflow triggers on push to main
+  PASS  M5   pytest runs as a pipeline job
+  PASS  M5   frontend is built in the pipeline
+  PASS  M5   both images are built
+  PASS  M5   images are pushed to GHCR tagged with the commit SHA
+  PASS  M5   the promoted image exists in GHCR (public, SHA tag)
+== M6 DevSecOps
+  PASS  M6   Trivy scans both images in the pipeline
+  PASS  M6   pipeline fails on HIGH/CRITICAL (Trivy severity + security gate)
+  PASS  M6   no secrets anywhere in the Git history (Gitleaks)
+== M7 Terraform
+  PASS  M7   terraform/ has HCL files and terraform.tfvars.example
+  PASS  M7   no tfvars, state or plan files tracked by Git
+  PASS  M7   terraform fmt and validate
+  PASS  M7   VPC with at least two public subnets and an EKS cluster with a node group
+== M8 Kubernetes + Helm
+  PASS  M8   k8s/namespace.yaml is a Namespace
+  PASS  M8   Helm chart with Chart.yaml, values.yaml and templates/
+  PASS  M8   helm lint passes
+  PASS  M8   backend (HPA min 2) and frontend run at least 2 replicas
+  PASS  M8   Services are ClusterIP
+  PASS  M8   Ingress routes / to the frontend and /api to the backend
+== M9 Observability
+  PASS  M9   /metrics is exposed (prometheus-fastapi-instrumentator) and tested
+  PASS  M9   monitoring/ holds the Prometheus + Grafana Helm values
+  PASS  M9   the chart ships a ServiceMonitor
+== M10 Documentation
+  PASS  M10  README.md in the repository root
+== Evidence files (docs/evidence/screenshots)
+  PASS  M1   app in the browser
+  PASS  M2   pytest -v
+  PASS  M3   commit history
+  PASS  M4   docker compose up --build and localhost:3000
+  PASS  M5   green Actions run and GHCR packages
+  PASS  M6   Trivy output from a pipeline run
+  PASS  M7   terraform plan, AWS Console VPC + EKS, terraform destroy
+  PASS  M8   kubectl get pods / svc, helm list, app through the Ingress
+  PASS  M9   curl /metrics, Prometheus targets UP, Grafana dashboard
+  PASS  M10  live demo rehearsal: before, pipeline, after
+
+RESULT: 46 passed, 0 failed
+
