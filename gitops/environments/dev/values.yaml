@@ -9,4 +9,3 @@ backend:
   env:
     APP_ENV: development
     LOG_LEVEL: INFO
-  resources: null
