@@ -47,3 +47,7 @@ images/
 .vscode/
 .DS_Store
 *.swp
+
+# ---- the demo video's Remotion project: kept local only (it holds the voice-over recordings
+#      and their transcripts); the rendered video is docs/ReadCycle-Demo.mp4
+video/

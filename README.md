@@ -17,6 +17,8 @@ cluster it ran on in the cloud.
 
 | | |
 |---|---|
+| **Project report (PDF, 10 pages)** | [`docs/ReadCycle-Project-Report.pdf`](docs/ReadCycle-Project-Report.pdf): every module with its proof |
+| **Demo video (4 min 22 s)** | [`docs/ReadCycle-Demo.mp4`](docs/ReadCycle-Demo.mp4): narrated walkthrough with captions |
 | Every rubric item and its proof | [`docs/EVIDENCE.md`](docs/EVIDENCE.md) |
 | Live demo script | [`docs/DEMO.md`](docs/DEMO.md) |
 | Troubleshooting challenge | [`troubleshooting/README.md`](troubleshooting/README.md) |

@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ReadCycle: DevOps capstone report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=block" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f4efe6; --card: #fffdf8; --ink: #1f2a27; --muted: #5d6b66; --line: #e2d9c8;
+    --green: #2f5d50; --green-soft: #dcebe4; --plum: #6b3f69; --amber: #a46a12;
+  }
+  @page {
+    size: A4; margin: 12mm 14mm 14mm 14mm;
+    @bottom-left { content: "ReadCycle · Ratnesh Vaibhav · 24bcs10413"; font: 7.5pt Inter, sans-serif; color: #5d6b66; }
+    @bottom-right { content: "page " counter(page) " of " counter(pages); font: 7.5pt Inter, sans-serif; color: #5d6b66; }
+  }
+  @page :first { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 8.8pt/1.42 Inter, sans-serif; color: var(--ink); background: #fff; }
+  h1, h2, h3 { font-family: Fraunces, serif; font-weight: 700; line-height: 1.15; margin: 0; }
+  h2 { font-size: 16pt; }
+  h3 { font-size: 10.5pt; margin: 3mm 0 1.5mm; }
+  p { margin: 0 0 1.8mm; }
+  a { color: var(--green); text-decoration: none; border-bottom: 0.3mm solid var(--green-soft); }
+  code, .mono { font-family: "JetBrains Mono", monospace; font-size: 0.86em; }
+  code { background: #f1ede5; padding: 0.1mm 1mm; border-radius: 0.8mm; }
+  ul, ol { margin: 0 0 1.8mm; padding-left: 4.5mm; }
+  li { margin-bottom: 0.6mm; }
+
+  section.page { break-before: page; }
+  .modhead { display: flex; align-items: baseline; gap: 2.5mm; border-bottom: 0.5mm solid var(--green); padding-bottom: 1mm; margin: 0 0 2mm; }
+  .modhead.next { margin-top: 4mm; }
+  .mtag { font: 700 9pt "JetBrains Mono", monospace; color: #fff; background: var(--green); border-radius: 1mm; padding: 0.4mm 1.8mm; }
+  .pts { margin-left: auto; font: 700 8pt "JetBrains Mono", monospace; color: var(--green); background: var(--green-soft); border-radius: 10mm; padding: 0.5mm 2.5mm; }
+  .lead { color: var(--muted); }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; margin: 0.5mm 0 2.5mm; font-size: 8.2pt; }
+  th { text-align: left; font-weight: 700; background: var(--green-soft); color: var(--green); padding: 1mm 1.8mm; }
+  td { padding: 0.9mm 1.8mm; border-bottom: 0.25mm solid var(--line); vertical-align: top; }
+  tr { break-inside: avoid; }
+  td.ok { color: var(--green); font-weight: 700; width: 4mm; }
+  td.m { font: 700 8pt "JetBrains Mono", monospace; white-space: nowrap; }
+
+  /* figures; .crop shows the part of a screenshot that matters (data-crop = x0 y0 x1 y1 in image pixels) */
+  figure { margin: 1mm 0 2.5mm; break-inside: avoid; }
+  figure img { display: block; width: 100%; }
+  .frame { border: 0.3mm solid var(--line); border-radius: 1.2mm; overflow: hidden; }
+  .crop { overflow: hidden; }
+  .crop img { max-width: none; }
+  figcaption { font-size: 7.4pt; color: var(--muted); margin-top: 0.8mm; }
+  figcaption .mono { color: var(--green); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm; align-items: start; }
+  .side { display: grid; grid-template-columns: 1.15fr 1fr; gap: 4mm; align-items: start; }
+  .side.r { grid-template-columns: 1fr 1.15fr; }
+
+  .box { background: var(--paper); border-radius: 1.5mm; padding: 2mm 3mm; margin: 1mm 0 2.5mm; break-inside: avoid; }
+  .box h4 { margin: 0 0 0.6mm; font: 700 8.6pt Inter, sans-serif; color: var(--green); }
+  .note { border-left: 0.8mm solid var(--amber); background: #faf3e6; padding: 1.5mm 3mm; border-radius: 0.8mm; margin: 1mm 0 2.5mm; }
+
+  /* cover */
+  .cover { height: 297mm; padding: 16mm 16mm 12mm; background: var(--paper); display: flex; flex-direction: column; }
+  .kicker { font: 700 8pt "JetBrains Mono", monospace; letter-spacing: 0.5mm; color: var(--green); text-transform: uppercase; }
+  .cover .kicker { font-size: 9pt; letter-spacing: 0.9mm; }
+  .cover h1 { font-size: 50pt; margin: 1.5mm 0 1.5mm; }
+  .cover .pitch { font-size: 12.5pt; color: var(--muted); line-height: 1.35; max-width: 160mm; }
+  .cover .who { margin-top: 3mm; font-size: 10.5pt; }
+  .cover .hero { margin-top: 4mm; flex-shrink: 0; }
+  .cover .hero .frame { border-radius: 2mm; box-shadow: 0 2mm 6mm rgba(31,42,39,.12); }
+  .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2mm; margin-top: 4mm; }
+  .stat { background: var(--card); border: 0.3mm solid var(--line); border-top: 1mm solid var(--green); border-radius: 1.5mm; padding: 1.6mm 2mm; }
+  .stat b { display: block; font: 700 11pt Fraunces, serif; line-height: 1.15; }
+  .stat span { font-size: 7pt; color: var(--muted); line-height: 1.25; display: block; margin-top: 0.6mm; }
+  .links { margin-top: 3.5mm; background: var(--green); color: #fff; border-radius: 1.8mm; padding: 2.4mm 4mm; display: grid; grid-template-columns: 28mm 1fr; row-gap: 0.6mm; font-size: 8.8pt; }
+  .links a { color: #fff; border-bottom-color: rgba(255,255,255,.4); }
+  .links .k { font: 700 7.4pt "JetBrains Mono", monospace; letter-spacing: .3mm; opacity: .8; text-transform: uppercase; padding-top: .5mm; }
+  .cover h3 { margin-top: 4mm; }
+  .cover table { background: var(--card); }
+
+  /* architecture */
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5.5mm 5mm; margin: 2mm 0 1.5mm; }
+  .step { background: var(--card); border: 0.3mm solid var(--line); border-top: 1mm solid var(--green); border-radius: 1.5mm; padding: 1.5mm 2.2mm; min-height: 17mm; position: relative; }
+  .step .n { font: 700 6.8pt "JetBrains Mono", monospace; color: var(--green); }
+  .step b { display: block; font-size: 8.8pt; }
+  .step span { font-size: 7.3pt; color: var(--muted); line-height: 1.3; display: block; }
+  .step.r::after { content: "→"; position: absolute; right: -4.4mm; top: 6mm; color: var(--green); font: 700 11pt Inter; }
+  .step.l::after { content: "←"; position: absolute; left: -4.4mm; top: 6mm; color: var(--green); font: 700 11pt Inter; }
+  .step.d::after { content: "↓"; position: absolute; left: 47%; bottom: -5.4mm; color: var(--green); font: 700 11pt Inter; }
+  .step.plum { border-top-color: var(--plum); }
+  .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2.5mm; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================ 1. cover + rubric -->
+<div class="cover">
+  <div class="kicker">DevOps course · Session 21 · final capstone</div>
+  <h1>ReadCycle</h1>
+  <div class="pitch">A campus textbook exchange, and the delivery system that ships it: from one <code>git push</code> to a
+    tested, scanned, monitored Kubernetes deployment.</div>
+  <div class="who"><b>Ratnesh Vaibhav</b> &nbsp;·&nbsp; Roll No 24bcs10413 &nbsp;·&nbsp; 16 October 2026</div>
+  <div class="hero"><div class="frame crop" data-crop="0 0 1400 400" data-w="1400"><img src="../evidence/screenshots/web-m8-eks-app-via-ingress.png" alt="ReadCycle on AWS EKS"></div></div>
+  <div class="stats">
+    <div class="stat"><b>11 tests</b><span>pytest, 95 % coverage</span></div>
+    <div class="stat"><b>11 CI jobs</b><span>test → scan → build → push → deploy</span></div>
+    <div class="stat"><b>0 HIGH / CRIT.</b><span>8 security reports, one gate</span></div>
+    <div class="stat"><b>27 AWS res.</b><span>VPC + EKS by Terraform, destroyed</span></div>
+    <div class="stat"><b>5 min 49 s</b><span>git push → live, via Argo CD</span></div>
+    <div class="stat"><b>46 / 46</b><span>self-checks against GRADING.md</span></div>
+  </div>
+  <div class="links">
+    <span class="k">Repository</span><span><a href="https://github.com/RatneshVaibhav/readcycle">github.com/RatneshVaibhav/readcycle</a></span>
+    <span class="k">Demo video</span><span><a href="https://github.com/RatneshVaibhav/readcycle/blob/main/docs/ReadCycle-Demo.mp4">docs/ReadCycle-Demo.mp4</a> (4 min 22 s, narrated, with captions)</span>
+    <span class="k">Evidence</span><span><a href="https://github.com/RatneshVaibhav/readcycle/blob/main/docs/EVIDENCE.md">docs/EVIDENCE.md</a>: all 53 screenshots, item by item against the rubric</span>
+    <span class="k">Pipeline</span><span><a href="https://github.com/RatneshVaibhav/readcycle/actions">github.com/RatneshVaibhav/readcycle/actions</a></span>
+  </div>
+  <h3>The rubric, and where this report proves each module</h3>
+  <table>
+    <tr><th>Module</th><th>What was delivered</th><th>Pts</th><th>Page</th></tr>
+    <tr><td class="m">M1</td><td><a href="#m1">Application</a>: FastAPI + React + PostgreSQL, 8 REST endpoints, Alembic migration</td><td>10</td><td>3</td></tr>
+    <tr><td class="m">M2</td><td><a href="#m2">Testing</a>: 11 pytest tests, 95 % coverage, in-memory SQLite test database</td><td>10</td><td>3</td></tr>
+    <tr><td class="m">M3</td><td><a href="#m3">Git and GitHub</a>: public repository, 50 commits, <code>.gitignore</code> verified</td><td>5</td><td>4</td></tr>
+    <tr><td class="m">M4</td><td><a href="#m4">Docker</a>: multi-stage frontend, non-root images, Compose with health checks</td><td>10</td><td>4</td></tr>
+    <tr><td class="m">M5</td><td><a href="#m5">CI/CD</a>: 11-job GitHub Actions pipeline, GHCR images tagged with the commit SHA</td><td>15</td><td>5</td></tr>
+    <tr><td class="m">M6</td><td><a href="#m6">DevSecOps</a>: Trivy on both images + SAST, SCA, secrets; one gate over 8 reports</td><td>5</td><td>5</td></tr>
+    <tr><td class="m">M7</td><td><a href="#m7">Terraform on AWS</a>: VPC, 2 public + 2 private subnets, NAT, EKS + node group; destroyed</td><td>15</td><td>6</td></tr>
+    <tr><td class="m">M8</td><td><a href="#m8">Kubernetes + Helm</a>: chart on EKS, 2+ replicas, ClusterIP, Ingress <code>/</code> and <code>/api</code>, HPA</td><td>15</td><td>7</td></tr>
+    <tr><td class="m">M9</td><td><a href="#m9">Observability</a>: <code>/metrics</code>, Prometheus targets UP, Grafana dashboard, alerts</td><td>10</td><td>8</td></tr>
+    <tr><td class="m">M10</td><td><a href="#m10">Documentation and live demo</a>: README, demo script, recorded GitOps rollout</td><td>5</td><td>9</td></tr>
+    <tr><td class="m"></td><td><a href="#trouble">Troubleshooting challenge</a>: 3 faults injected through Git, root-caused, reverted</td><td></td><td>10</td></tr>
+  </table>
+</div>
+
+<!-- ================================================================ 2. architecture -->
+<section class="page" id="architecture">
+  <div class="modhead"><h2>Architecture</h2></div>
+  <p class="lead">The app is deliberately small. The project is the delivery system around it: how one commit travels from the
+    laptop to a monitored Kubernetes cluster, safely and automatically.</p>
+  <h3>A change: from <code>git push</code> to production</h3>
+  <div class="flow">
+    <div class="step r"><div class="n">01</div><b>git push</b><span>a commit to <code>main</code> on GitHub</span></div>
+    <div class="step r"><div class="n">02</div><b>Tests first</b><span>pytest and the Vite build; a failure stops everything</span></div>
+    <div class="step r"><div class="n">03</div><b>Scan</b><span>Bandit, Semgrep, pip-audit, npm audit, Trivy fs, Gitleaks</span></div>
+    <div class="step d"><div class="n">04</div><b>Build + image scan</b><span>both images built once; Trivy scans the exact files</span></div>
+    <div class="step"><div class="n">08</div><b>Kubernetes</b><span>Ingress, 2 frontend pods, backend HPA 2–4, PostgreSQL</span></div>
+    <div class="step l"><div class="n">07</div><b>Argo CD</b><span>watches <code>main</code>, syncs the cluster to Git</span></div>
+    <div class="step l"><div class="n">06</div><b>Push + promote</b><span>GHCR tag = commit SHA; <code>helm test</code>; tag committed to <code>gitops/</code></span></div>
+    <div class="step l plum"><div class="n">05</div><b>Security gate</b><span>reads all 8 reports; any HIGH / CRITICAL stops the run</span></div>
+  </div>
+  <p style="color:var(--muted)">CI never touches the cluster and <b>no cloud or cluster credentials are stored in GitHub</b>. Rolling back is <code>git revert</code>.</p>
+
+  <h3>A request, and who watches it</h3>
+  <div class="three">
+    <div class="step"><b>Ingress (ingress-nginx)</b><span><code>/</code> → frontend: nginx serving the React build, 2 pods. <code>/api</code> → backend: FastAPI, autoscaled 2–4 pods</span></div>
+    <div class="step"><b>PostgreSQL 17</b><span>StatefulSet with a persistent volume (gp3 EBS on AWS); password from a Secret that is never in Git</span></div>
+    <div class="step plum"><b>Prometheus + Grafana</b><span>ServiceMonitor scrapes <code>/metrics</code> every 15 s; 4 alert rules; 12-panel dashboard</span></div>
+  </div>
+  <p style="margin-top:2mm">It ran in three places: on <b>AWS EKS</b> in Sydney (built by Terraform, destroyed after testing), on a
+    <b>local kind cluster</b> deployed by Argo CD from GitHub (the live demo and the troubleshooting challenge, at no cost), and with
+    <b>Docker Compose</b> for local development.</p>
+
+  <h3>Technologies</h3>
+  <table>
+    <tr><th>Area</th><th>Tools</th></tr>
+    <tr><td>Application</td><td>React 19 + Vite 8 · Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic 2 · PostgreSQL 17 · pytest</td></tr>
+    <tr><td>Delivery</td><td>Docker multi-stage builds, Docker Compose, GitHub Actions, GitHub Container Registry, Argo CD 3.5</td></tr>
+    <tr><td>Security</td><td>Bandit, Semgrep, pip-audit, npm audit, Trivy, Gitleaks, a security gate, Pod Security</td></tr>
+    <tr><td>Infrastructure</td><td>Terraform (AWS provider 6), VPC, EKS 1.37, IAM, EKS Pod Identity, EBS CSI driver</td></tr>
+    <tr><td>Kubernetes</td><td>Helm 4, ingress-nginx, HPA + metrics-server, kind, kube-prometheus-stack</td></tr>
+  </table>
+
+  <div class="two">
+    <div class="box">
+      <h4>Cost: $0 billed</h4>
+      GitHub, Actions, GHCR and the local cluster are free. The AWS session (EKS, NAT gateway, one node, about 1 h 20 min) used about
+      $0.40 of Free Tier credits on the AWS Free plan. Everything was destroyed afterwards, and the Terraform user and its access key
+      were deleted (<code>docs/TEARDOWN.md</code>).
+    </div>
+    <div class="box">
+      <h4>No secrets anywhere</h4>
+      Gitleaks scans the whole Git history on every run. The database password lives in a git-ignored <code>.env</code> and in a
+      Kubernetes Secret; Grafana's is random; the pipeline uses only GitHub's own short-lived token.
+    </div>
+  </div>
+  <div class="box">
+    <h4>How the evidence was made</h4>
+    Terminal screenshots are rendered from recorded sessions, each command with its real output (<code>docs/evidence/transcripts/</code>).
+    Browser screenshots are headless-Chrome captures with the URL bar. AWS Console screenshots were taken by me in my AWS account.
+    In this report, tall screenshots are cropped to the lines that matter; each caption names the full file in
+    <code>docs/evidence/screenshots/</code>. <code>scripts/check-submission.sh</code> re-checks every scriptable rubric item: <b>46 passed, 0 failed</b>.
+  </div>
+</section>
+
+<!-- ================================================================ 3. M1 + M2 -->
+<section class="page">
+  <div class="modhead" id="m1"><span class="mtag">M1</span><h2>Application</h2><span class="pts">10 pts</span></div>
+  <p class="lead">Students list course books they no longer need, other students reserve them, and the owner marks a book as
+    exchanged once it changes hands.</p>
+  <div class="side">
+    <table>
+      <tr><th>Endpoint</th><th>Purpose</th></tr>
+      <tr><td><code>GET /api/books?status=&amp;q=&amp;course=</code></td><td>list and search</td></tr>
+      <tr><td><code>POST /api/books</code></td><td>list a book (201)</td></tr>
+      <tr><td><code>GET · PUT · DELETE /api/books/{id}</code></td><td>read, update, remove</td></tr>
+      <tr><td><code>POST /api/books/{id}/reserve</code></td><td>reserve; 409 if taken</td></tr>
+      <tr><td><code>GET /api/books/stats</code></td><td>totals, top courses</td></tr>
+      <tr><td><code>GET /api/version</code></td><td>running commit (UI footer)</td></tr>
+      <tr><td><code>/health · /ready · /metrics</code></td><td>probes, Prometheus</td></tr>
+    </table>
+    <table>
+      <tr><th>Rubric criterion</th><th></th></tr>
+      <tr><td>FastAPI starts, <code>/health</code> responds (<span class="mono">m1-api_1.png</span>)</td><td class="ok">✓</td></tr>
+      <tr><td>≥ 4 REST endpoints, GET/POST/PUT/DELETE, each with its real status code: 201, 200, 409, 204, 404, 422</td><td class="ok">✓</td></tr>
+      <tr><td>PostgreSQL table by Alembic: <code>0001_create_books.py</code>, "Running upgrade -&gt; 0001" (page 4)</td><td class="ok">✓</td></tr>
+      <tr><td>React frontend renders and calls the API; responsive layout</td><td class="ok">✓</td></tr>
+    </table>
+  </div>
+  <div class="two">
+    <figure><div class="frame crop" data-crop="0 0 1400 940" data-w="1400"><img src="../evidence/screenshots/web-m1-m4-app-localhost-3000.png"></div>
+      <figcaption>The React UI on Docker Compose, localhost:3000. <span class="mono">web-m1-m4-app-localhost-3000.png</span></figcaption></figure>
+    <figure><div class="frame crop" data-crop="0 80 1400 1020" data-w="1400"><img src="../evidence/screenshots/web-m1-swagger-api-docs.png"></div>
+      <figcaption>The API: every endpoint in the FastAPI docs. <span class="mono">web-m1-swagger-api-docs.png</span></figcaption></figure>
+  </div>
+
+  <div class="modhead next" id="m2"><span class="mtag">M2</span><h2>Testing</h2><span class="pts">10 pts</span></div>
+  <div class="side r">
+    <div>
+      <p>Eleven tests cover health, readiness, create and get, validation, search and filters, update, reserve-only-once, delete,
+        stats, <code>/metrics</code> and the version endpoint. They run against an <b>in-memory SQLite</b> database, so they never touch real data.</p>
+      <table>
+        <tr><th>Rubric criterion</th><th></th></tr>
+        <tr><td><code>pytest</code> runs without errors; ≥ 5 tests on ≥ 3 endpoints: <b>11 passed, 95 % coverage</b></td><td class="ok">✓</td></tr>
+        <tr><td>A test database, not production: <code>sqlite+pysqlite://</code> in <code>conftest.py</code></td><td class="ok">✓</td></tr>
+        <tr><td><code>pytest.ini</code> and <code>conftest.py</code> present</td><td class="ok">✓</td></tr>
+        <tr><td>Tests gate the pipeline: every later job <code>needs</code> them</td><td class="ok">✓</td></tr>
+      </table>
+    </div>
+    <figure><div class="frame crop" data-crop="0 180 1284 1030" data-w="1284"><img src="../evidence/screenshots/m2-pytest.png"></div>
+      <figcaption>The SQLite test database in <code>conftest.py</code>, then <code>pytest -v</code>: 11 passed, 95 % coverage. <span class="mono">m2-pytest.png</span></figcaption></figure>
+  </div>
+</section>
+
+<!-- ================================================================ 4. M3 + M4 -->
+<section class="page">
+  <div class="modhead" id="m3"><span class="mtag">M3</span><h2>Git and GitHub</h2><span class="pts">5 pts</span></div>
+  <table>
+    <tr><th>Rubric criterion</th><th></th><th>Proof</th></tr>
+    <tr><td>Public GitHub repository</td><td class="ok">✓</td><td><a href="https://github.com/RatneshVaibhav/readcycle">github.com/RatneshVaibhav/readcycle</a></td></tr>
+    <tr><td>≥ 10 commits with meaningful messages</td><td class="ok">✓</td><td>50 commits today, each describing one change (17 when this was recorded)</td></tr>
+    <tr><td><code>.gitignore</code> excludes <code>.env</code>, <code>__pycache__</code>, <code>node_modules</code>, <code>.venv</code></td><td class="ok">✓</td><td><code>git check-ignore</code> for each, below</td></tr>
+  </table>
+  <figure><div class="frame crop" data-crop="0 40 1284 630" data-w="1284"><img src="../evidence/screenshots/m3-git-history.png"></div>
+    <figcaption>The remote, the commit history (including the pipeline bot's GitOps commits) and the <code>.gitignore</code> check. <span class="mono">m3-git-history.png</span></figcaption></figure>
+
+  <div class="modhead next" id="m4"><span class="mtag">M4</span><h2>Docker</h2><span class="pts">10 pts</span></div>
+  <ul>
+    <li><b>Backend</b>: two stages; dependencies built in a throw-away stage, runtime <code>python:3.12-alpine</code> as <b>uid 10001</b>; migrations run before the API starts.</li>
+    <li><b>Frontend</b>: <b>multi-stage</b>, <code>FROM node:24-alpine AS build</code> → <code>FROM nginxinc/nginx-unprivileged</code> as <b>uid 101</b>, no Node at runtime; OS packages patched (M6).</li>
+    <li><b>Compose</b>: PostgreSQL with a health check; the backend waits for the database, the frontend for the backend; the password comes from a git-ignored <code>.env</code>.</li>
+  </ul>
+  <figure><div class="frame crop" data-crop="0 733 1284 1120" data-w="1284"><img src="../evidence/screenshots/m4-compose-up.png"></div>
+    <figcaption>After <code>docker compose up --build</code>: three services healthy, the Alembic migration applied, <b>both containers non-root</b> (uid 10001, uid 101), both images built. <span class="mono">m4-compose-up.png</span></figcaption></figure>
+  <table>
+    <tr><th>Rubric criterion</th><th></th></tr>
+    <tr><td>Both Dockerfiles build; the frontend is multi-stage (Node build + nginx runtime)</td><td class="ok">✓</td></tr>
+    <tr><td>Images run as non-root</td><td class="ok">✓</td></tr>
+    <tr><td><code>docker compose up --build</code> starts frontend, backend and PostgreSQL; the UI works at localhost:3000 (page 3)</td><td class="ok">✓</td></tr>
+  </table>
+</section>
+
+<!-- ================================================================ 5. M5 + M6 -->
+<section class="page">
+  <div class="modhead" id="m5"><span class="mtag">M5</span><h2>CI/CD</h2><span class="pts">15 pts</span></div>
+  <p><code>.github/workflows/pipeline.yml</code> runs on every push and pull request to <code>main</code>. 15 runs so far: 11 green,
+    4 cancelled because a newer push superseded them, none failed.</p>
+  <table>
+    <tr><th>Jobs, in order</th><th>What they do</th></tr>
+    <tr><td>Backend tests · Frontend build</td><td>pytest on SQLite and the Vite build; everything after them <code>needs</code> them</td></tr>
+    <tr><td>SAST · SCA · Secret scan</td><td>Bandit + Semgrep · pip-audit + npm audit + Trivy fs · Gitleaks over the whole history</td></tr>
+    <tr><td>Docker build · Image scan · Security gate</td><td>both images built once; Trivy scans those exact files; one policy over all 8 reports</td></tr>
+    <tr><td>Push · Deploy test · Promote</td><td>GHCR with the <b>commit SHA</b> as the tag (never <code>latest</code>) · kind + <code>helm test</code> · tag committed to <code>gitops/</code></td></tr>
+  </table>
+  <div class="two">
+    <figure><div class="frame crop" data-crop="0 270 1500 845" data-w="1500"><img src="../evidence/screenshots/web-m5-actions-run-green.png"></div>
+      <figcaption>A green run on <code>main</code>: all 11 jobs passed. <span class="mono">web-m5-actions-run-green.png</span></figcaption></figure>
+    <figure><div class="frame crop" data-crop="190 280 1200 800" data-w="1400"><img src="../evidence/screenshots/web-m5-ghcr-readcycle-backend.png"></div>
+      <figcaption>GHCR: <code>readcycle-backend</code>, public, tagged only with commit SHAs. <span class="mono">web-m5-ghcr-readcycle-backend.png</span></figcaption></figure>
+  </div>
+
+  <div class="modhead next" id="m6"><span class="mtag">M6</span><h2>DevSecOps</h2><span class="pts">5 pts</span></div>
+  <div class="box">
+    <h4>What Trivy scanned and what it means</h4>
+    Trivy scanned the operating-system packages and the Python and Node dependencies inside both images, using the exact files the
+    pipeline pushes, and found <b>0 HIGH or CRITICAL</b>. That is deliberate: the upstream nginx base image has <b>43 fixable
+    HIGH/CRITICAL CVEs</b>, for example <b>CVE-2026-33630</b>, a use-after-free / double-free in the <code>c-ares</code> DNS library
+    (1.34.6, fixed in 1.34.8). The frontend Dockerfile runs <code>apk upgrade</code> and removes <code>curl</code> to patch them, and the
+    gate fails the pipeline if one comes back. The scanners are pinned and verified with SHA-256 checksums.
+  </div>
+  <div class="two">
+    <figure><div class="frame crop" data-crop="0 277 760 760" data-w="1284"><img src="../evidence/screenshots/m6-trivy-in-pipeline.png"></div>
+      <figcaption>From the GitHub job logs: Trivy on both images (0 HIGH/CRITICAL) and the gate's table over all 8 reports: PASSED. <span class="mono">m6-trivy-in-pipeline.png</span></figcaption></figure>
+    <figure><div class="frame crop" data-crop="0 181 760 620" data-w="1284"><img src="../evidence/screenshots/m6-trivy-cve-example.png"></div>
+      <figcaption>The unpatched base image (43 fixable), CVE-2026-33630 in <code>c-ares</code>, and the published image: 0. <span class="mono">m6-trivy-cve-example.png</span></figcaption></figure>
+  </div>
+</section>
+
+<!-- ================================================================ 6. M7 -->
+<section class="page">
+  <div class="modhead" id="m7"><span class="mtag">M7</span><h2>Terraform on AWS</h2><span class="pts">15 pts</span></div>
+  <div class="side">
+    <div>
+      <p><code>terraform/</code> creates <b>27 resources</b> (the first plan had 25; the Pod Identity fix added two):</p>
+      <ul>
+        <li>a <b>VPC</b> <code>10.40.0.0/16</code> with <b>2 public</b> and <b>2 private subnets</b> in two availability zones;</li>
+        <li>an internet gateway, a <b>NAT gateway</b>, route tables and IAM roles;</li>
+        <li><b>EKS 1.37</b> with a managed <b>node group</b> (one <code>m7i-flex.large</code>);</li>
+        <li>the EBS CSI driver through <b>EKS Pod Identity</b>, and metrics-server.</li>
+      </ul>
+    </div>
+    <div class="box" style="margin-top:0">
+      <h4>Kept safe and free</h4>
+      <b>Sydney (ap-southeast-2):</b> the account's AWS-managed policy allows EC2 and EKS only there. <b>Free plan:</b>
+      <code>m7i-flex.large</code> is on its instance list. <b><code>upgrade_policy = STANDARD</code>:</b> never the 6× pricier extended
+      support. <b>No credentials in Git:</b> a least-privilege IAM user, its key only on the laptop (since deleted); <code>tfvars</code>
+      and state git-ignored, <code>terraform.tfvars.example</code> committed. The EKS API accepted only the laptop's IP.
+    </div>
+  </div>
+  <div class="two">
+    <figure><div class="frame"><img src="../evidence/screenshots/aws-m7-console-vpc.png"></div><figcaption><code>readcycle-vpc</code> in Sydney. <span class="mono">aws-m7-console-vpc.png</span></figcaption></figure>
+    <figure><div class="frame"><img src="../evidence/screenshots/aws-m7-console-subnets.png"></div><figcaption>The four subnets, two public. <span class="mono">aws-m7-console-subnets.png</span></figcaption></figure>
+    <figure><div class="frame"><img src="../evidence/screenshots/aws-m7-console-eks-cluster.png"></div><figcaption>EKS <code>readcycle-eks</code>: Active, 1.37, standard support. <span class="mono">aws-m7-console-eks-cluster.png</span></figcaption></figure>
+    <figure><div class="frame"><img src="../evidence/screenshots/aws-m7-console-eks-nodegroup.png"></div><figcaption>Node group <code>readcycle-default</code>: Active. <span class="mono">aws-m7-console-eks-nodegroup.png</span></figcaption></figure>
+  </div>
+  <div class="two">
+    <figure><div class="frame crop" data-crop="0 40 1284 448" data-w="1284"><img src="../evidence/screenshots/m7-terraform-plan.png"></div>
+      <figcaption>As the least-privilege user in ap-southeast-2: <code>init</code>, <code>fmt</code>, <code>validate</code>, <code>plan</code> (exit 0, 25 to add). <span class="mono">m7-terraform-plan.png</span></figcaption></figure>
+    <div>
+      <figure><div class="frame crop" data-crop="0 40 1284 250" data-w="1284"><img src="../evidence/screenshots/m7-terraform-destroy_2.png"></div>
+        <figcaption><code>destroy</code>: 27 destroyed, 0 left in state. <span class="mono">m7-terraform-destroy_2.png</span></figcaption></figure>
+      <figure><div class="frame crop" data-crop="0 87 1284 375" data-w="1284"><img src="../evidence/screenshots/m7-aws-nothing-left.png"></div>
+        <figcaption>Checked against AWS: no cluster, VPC, NAT gateway, Elastic IP, instance or volume left. <span class="mono">m7-aws-nothing-left.png</span></figcaption></figure>
+    </div>
+  </div>
+  <table>
+    <tr><th>Rubric criterion</th><th></th><th>Rubric criterion</th><th></th></tr>
+    <tr><td>Valid HCL; <code>init</code> and a non-empty <code>plan</code></td><td class="ok">✓</td><td>EKS with ≥ 1 node group, provisioned</td><td class="ok">✓</td></tr>
+    <tr><td>VPC with ≥ 2 public subnets, provisioned</td><td class="ok">✓</td><td><code>destroy</code> removes everything; no credentials committed</td><td class="ok">✓</td></tr>
+  </table>
+</section>
+
+<!-- ================================================================ 7. M8 -->
+<section class="page">
+  <div class="modhead" id="m8"><span class="mtag">M8</span><h2>Kubernetes + Helm</h2><span class="pts">15 pts</span></div>
+  <div class="side r">
+    <div>
+      <p>The <code>helm/readcycle</code> chart, installed on <b>AWS EKS</b> and on the local cluster:</p>
+      <ul>
+        <li><b>Backend</b>: HPA 2–4 replicas, startup/readiness/liveness probes, a <code>wait-for-db</code> init container, a ConfigMap, the password from a Secret.</li>
+        <li><b>Frontend</b>: 2 replicas. <b>PostgreSQL</b>: StatefulSet with a persistent volume (gp3 EBS).</li>
+        <li><b>ClusterIP Services</b> and an <b>Ingress</b>: <code>/</code> → frontend, <code>/api</code> → backend.</li>
+        <li>ServiceMonitor, 4 alert rules, a Grafana dashboard, <code>helm test</code>; <code>k8s/namespace.yaml</code> with Pod Security labels.</li>
+      </ul>
+      <div class="note">No AWS load balancer on EKS, because it would cost money: ingress-nginx is reached through <code>kubectl port-forward</code>, and requests still go through the Ingress rules by hostname.</div>
+    </div>
+    <figure><div class="frame crop" data-crop="0 0 1400 940" data-w="1400"><img src="../evidence/screenshots/web-m8-eks-app-via-ingress.png"></div>
+      <figcaption>ReadCycle on AWS EKS through the Ingress. <span class="mono">web-m8-eks-app-via-ingress.png</span></figcaption></figure>
+  </div>
+  <figure><div class="frame crop" data-crop="0 372 1284 1080" data-w="1284"><img src="../evidence/screenshots/m8-eks-helm-install.png"></div>
+    <figcaption>On EKS: <code>helm list</code> (deployed), five pods Running, <b>ClusterIP</b> services, the Ingress, the HPA (min 2, max 4), the PVC on <b>gp3</b>, and <code>helm test</code> Succeeded. <span class="mono">m8-eks-helm-install.png</span></figcaption></figure>
+  <div class="two">
+    <figure><div class="frame crop" data-crop="0 40 830 316" data-w="1284"><img src="../evidence/screenshots/m8-ingress-routing.png"></div>
+      <figcaption>The Ingress rules: <code>/api</code> → backend, <code>/</code> → frontend, both answering HTTP 200. <span class="mono">m8-ingress-routing.png</span> (EKS: <span class="mono">m8-eks-ingress.png</span>)</figcaption></figure>
+    <table>
+      <tr><th>Rubric criterion</th><th></th></tr>
+      <tr><td><code>namespace.yaml</code> applies; chart with <code>Chart.yaml</code>, values, templates</td><td class="ok">✓</td></tr>
+      <tr><td><code>helm upgrade --install</code> works; <code>helm list</code></td><td class="ok">✓</td></tr>
+      <tr><td>Backend and frontend ≥ 2 replicas, Running</td><td class="ok">✓</td></tr>
+      <tr><td>ClusterIP Services; Ingress <code>/</code> → frontend, <code>/api</code> → backend</td><td class="ok">✓</td></tr>
+      <tr><td>HPA scales 2 → 4 under load (page 8)</td><td class="ok">✓</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ================================================================ 8. M9 -->
+<section class="page">
+  <div class="modhead" id="m9"><span class="mtag">M9</span><h2>Observability</h2><span class="pts">10 pts</span></div>
+  <p><code>monitoring/install.sh</code> installs kube-prometheus-stack with <code>monitoring/kube-prometheus-stack-values.yaml</code>
+    (Prometheus on a volume, Grafana's admin password random in a Secret). The backend exposes <code>/metrics</code> through
+    <code>prometheus-fastapi-instrumentator</code>; the chart's <b>ServiceMonitor</b> scrapes it every 15 s; <b>4 alert rules</b> watch
+    for backend down, database down, 5xx ratio and p95 latency; a <b>12-panel dashboard</b> shows requests, latency, status codes,
+    replicas, CPU and memory.</p>
+  <figure><div class="frame crop" data-crop="0 88 1600 905" data-w="1600"><img src="../evidence/screenshots/web-m9-eks-grafana-dashboard.png"></div>
+    <figcaption>Grafana on AWS EKS with live traffic: replicas, books, 5xx ratio, alerts, requests per endpoint, latency p50/p95/p99, status codes, HPA replicas. <span class="mono">web-m9-eks-grafana-dashboard.png</span></figcaption></figure>
+  <div class="two">
+    <figure><div class="frame crop" data-crop="0 0 1500 640" data-w="1500"><img src="../evidence/screenshots/web-m9-eks-prometheus-targets-up.png"></div>
+      <figcaption>Prometheus on EKS: the backend targets UP. <span class="mono">web-m9-eks-prometheus-targets-up.png</span></figcaption></figure>
+    <figure><div class="frame crop" data-crop="0 40 1284 460" data-w="1284"><img src="../evidence/screenshots/m9-metrics-curl.png"></div>
+      <figcaption><code>/metrics</code>: HTTP 200, Prometheus text format, the app's own counters. <span class="mono">m9-metrics-curl.png</span></figcaption></figure>
+  </div>
+  <figure><div class="frame crop" data-crop="0 714 1284 1000" data-w="1284"><img src="../evidence/screenshots/m9-promql-and-hpa.png"></div>
+    <figcaption>The 4 alert rules loaded and healthy, and the HPA under load: CPU 350 % of the request, backend scaled from 2 to 4 replicas. <span class="mono">m9-promql-and-hpa.png</span></figcaption></figure>
+  <table>
+    <tr><th>Rubric criterion</th><th></th><th>Rubric criterion</th><th></th></tr>
+    <tr><td><code>/metrics</code> returns Prometheus format</td><td class="ok">✓</td><td>Grafana accessible, a panel with live app metrics</td><td class="ok">✓</td></tr>
+    <tr><td>Prometheus installed and scraping the app</td><td class="ok">✓</td><td><code>monitoring/</code> Helm values files</td><td class="ok">✓</td></tr>
+  </table>
+</section>
+
+<!-- ================================================================ 9. M10 -->
+<section class="page">
+  <div class="modhead" id="m10"><span class="mtag">M10</span><h2>Documentation and live demo</h2><span class="pts">5 pts</span></div>
+  <p><b><code>README.md</code></b> explains the application, the architecture and every part of the delivery system; <b><code>docs/DEMO.md</code></b>
+    is the presentation script; <b><code>docs/EVIDENCE.md</code></b> maps every rubric item to its proof. <code>gitops/bootstrap.sh</code>
+    prepares a cluster in one command: namespace, random database password, Argo CD, and the Application that deploys
+    <code>helm/readcycle</code> from this repository's <code>main</code> (automated sync, prune, self-heal).</p>
+  <table>
+    <tr><th>Time</th><th>The live demo, rehearsed and recorded: one commit to production</th></tr>
+    <tr><td class="m">08:51:45</td><td>a tagline change is committed and pushed</td></tr>
+    <tr><td class="m">08:56:21</td><td>all 11 pipeline jobs green; the promote job commits the new image tag to <code>gitops/</code></td></tr>
+    <tr><td class="m">08:57:34</td><td>Argo CD has rolled it out: the new tagline is live and the footer shows build <code>75f4b23</code>. Nobody ran <code>kubectl</code>.</td></tr>
+  </table>
+  <div class="two">
+    <figure><div class="frame"><img src="../evidence/screenshots/web-m10-1-before.png"></div>
+      <figcaption>Before: the old tagline, build <code>8796efe</code>. <span class="mono">web-m10-1-before.png</span></figcaption></figure>
+    <figure><div class="frame"><img src="../evidence/screenshots/web-m10-3-after.png"></div>
+      <figcaption>After: the new tagline, build <code>75f4b23</code>. <span class="mono">web-m10-3-after.png</span></figcaption></figure>
+  </div>
+  <div class="side">
+    <figure><div class="frame crop" data-crop="0 40 1284 740" data-w="1284"><img src="../evidence/screenshots/m10-live-demo-2-rollout.png"></div>
+      <figcaption>Pipeline success, the bot's tag commit, Argo CD synced and the new image running. <span class="mono">m10-live-demo-2-rollout.png</span></figcaption></figure>
+    <figure><div class="frame"><img src="../evidence/screenshots/web-m10-4-argocd-synced.png"></div>
+      <figcaption>Argo CD: Synced to the pipeline's commit, Healthy. <span class="mono">web-m10-4-argocd-synced.png</span></figcaption></figure>
+  </div>
+  <div class="two">
+    <figure><div class="frame"><img src="../evidence/screenshots/m10-live-demo-1-commit.png"></div>
+      <figcaption>The change: commit and push at 08:51:45. <span class="mono">m10-live-demo-1-commit.png</span></figcaption></figure>
+    <figure><div class="frame crop" data-crop="0 0 1500 640" data-w="1500"><img src="../evidence/screenshots/web-m10-2-pipeline-running.png"></div>
+      <figcaption>The pipeline running for that commit. <span class="mono">web-m10-2-pipeline-running.png</span></figcaption></figure>
+  </div>
+</section>
+
+<!-- ================================================================ 10. troubleshooting + lessons -->
+<section class="page">
+  <div class="modhead" id="trouble"><h2>Troubleshooting challenge</h2></div>
+  <p>Every fault arrived the way real outages do: <b>as a commit</b>. <code>troubleshooting/inject.sh</code> pushed a small, harmless-looking
+    change to the GitOps values file and Argo CD deployed it. Each was identified, investigated through logs and resources, root-caused,
+    fixed with <code>git revert</code> and verified. Full write-up: <code>troubleshooting/README.md</code>.</p>
+  <table>
+    <tr><th>Bad commit</th><th>What users and tools saw</th><th>Root cause</th><th>Broken → fixed</th></tr>
+    <tr><td><code>database.user: readcycle_app</code></td><td>new backend pods crash-loop; users still served by old pods</td><td>PostgreSQL creates the user from <code>POSTGRES_USER</code> only on an empty volume</td><td class="m">08:59:42 → 09:00:31</td></tr>
+    <tr><td><code>ingress.host: readcycle.local</code></td><td><b>every URL 404 while Argo CD and all probes say Healthy</b></td><td>no Ingress rule matches the hostname users type</td><td class="m">09:02:04 → 09:03:17</td></tr>
+    <tr><td><code>backend.resources: null</code></td><td>HPA <code>cpu: &lt;unknown&gt;</code>, Argo CD Degraded</td><td>HPA utilisation is a % of the CPU request; no request, nothing to divide by</td><td class="m">09:04:41 → 09:06:28</td></tr>
+  </table>
+  <figure><div class="frame crop" data-crop="0 40 1284 505" data-w="1284"><img src="../evidence/screenshots/tr2-ingress-host_1.png"></div>
+    <figcaption>Fault 2: the bad commit, Argo CD Synced and Healthy, and still HTTP 404 for every user. <span class="mono">tr2-ingress-host_1.png</span></figcaption></figure>
+  <div class="two">
+    <figure><div class="frame crop" data-crop="0 333 1284 790" data-w="1284"><img src="../evidence/screenshots/tr1-wrong-db-user.png"></div>
+      <figcaption>Fault 1: a new pod in CrashLoopBackOff, users still served by the old pods, and the log: <code>password authentication failed for user "readcycle_app"</code>. <span class="mono">tr1-wrong-db-user.png</span></figcaption></figure>
+    <figure><div class="frame crop" data-crop="0 295 1284 570" data-w="1284"><img src="../evidence/screenshots/tr3-hpa-without-requests.png"></div>
+      <figcaption>Fault 3: HPA <code>cpu: &lt;unknown&gt;/70%</code>, "missing request for cpu", Argo CD Degraded. <span class="mono">tr3-hpa-without-requests.png</span></figcaption></figure>
+  </div>
+  <div class="two">
+    <div class="box" style="margin:0">
+      <h4>The method, the same every time</h4>
+      Symptom (<code>curl</code>, <code>argocd app get</code>) → resources (<code>kubectl get</code>, <code>describe</code>, events) → logs
+      (<code>--previous</code>, the ingress controller) → the wrong object → the commit (<code>git log</code>) → <code>git revert</code> → check the symptom again.
+    </div>
+    <div class="box" style="margin:0">
+      <h4>Also documented: six real problems</h4>
+      AWS refusing <code>aws login</code>; the one-region account policy; the node group's missing service-linked role; the EBS driver
+      without credentials (fixed with Pod Identity); the PostgreSQL image versus Pod Security; Argo CD's brief "Degraded" after a rollout.
+    </div>
+  </div>
+  <h3>Lessons learned</h3>
+  <ol>
+    <li><b>Healthy isn't working.</b> The Ingress typo passed every probe and Argo CD check while every user got a 404. Something has to test the public URL.</li>
+    <li><b>GitOps makes every change reviewable and reversible.</b> Faults, fixes and deployments are all commits; a rollback is <code>git revert</code>.</li>
+    <li><b>Scan what you ship.</b> The base image carried 43 fixable CVEs that <code>docker build</code> happily produced.</li>
+    <li><b>Pods shouldn't borrow the node's identity;</b> EKS Pod Identity gives each workload its own credentials. <b>The HPA divides by the request:</b> no CPU request, no autoscaling.</li>
+    <li><b>Tear down what Terraform doesn't know about first.</b> Kubernetes created the EBS volumes, so <code>terraform destroy</code> alone would have left them behind.</li>
+  </ol>
+</section>
+
+<script>
+  // Crop screenshots to the part that matters: data-crop="x0 y0 x1 y1" in image pixels, data-w = image width.
+  for (const el of document.querySelectorAll(".crop[data-crop]")) {
+    const [x0, y0, x1, y1] = el.dataset.crop.split(" ").map(Number);
+    const w = Number(el.dataset.w), cw = x1 - x0, img = el.querySelector("img");
+    el.style.aspectRatio = `${cw} / ${y1 - y0}`;
+    img.style.width = `${(w / cw) * 100}%`;
+    img.style.marginLeft = `${(-x0 / cw) * 100}%`;
+    img.style.marginTop = `${(-y0 / cw) * 100}%`;
+  }
+</script>
+</body>
+</html>
