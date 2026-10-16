@@ -274,8 +274,8 @@
 <!-- ================================================================ 5. M5 + M6 -->
 <section class="page">
   <div class="modhead" id="m5"><span class="mtag">M5</span><h2>CI/CD</h2><span class="pts">15 pts</span></div>
-  <p><code>.github/workflows/pipeline.yml</code> runs on every push and pull request to <code>main</code>. 15 runs so far: 11 green,
-    4 cancelled because a newer push superseded them, none failed.</p>
+  <p><code>.github/workflows/pipeline.yml</code> runs on every push and pull request to <code>main</code>. No run has ever failed: 12 green so far,
+    and 4 cancelled because a newer push superseded them.</p>
   <table>
     <tr><th>Jobs, in order</th><th>What they do</th></tr>
     <tr><td>Backend tests · Frontend build</td><td>pytest on SQLite and the Vite build; everything after them <code>needs</code> them</td></tr>

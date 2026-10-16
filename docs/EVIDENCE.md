@@ -57,7 +57,7 @@ screenshot that proves it. All screenshots are in [`evidence/screenshots/`](evid
 | Pushed to GHCR | job `push` | [web-m5-ghcr-readcycle-backend](evidence/screenshots/web-m5-ghcr-readcycle-backend.png), [frontend](evidence/screenshots/web-m5-ghcr-readcycle-frontend.png) |
 | Tags are the commit SHA, never `latest` | `$GITHUB_SHA`; the chart *requires* a tag | the GHCR pages list only SHA tags |
 
-Actions run URL: https://github.com/RatneshVaibhav/readcycle/actions (every run green; e.g.
+Actions run URL: https://github.com/RatneshVaibhav/readcycle/actions (no run has failed: every one is green, or cancelled because a newer push superseded it; e.g.
 [run #3](https://github.com/RatneshVaibhav/readcycle/actions/runs/38781771749)).
 
 ## M6 — DevSecOps (5)
