@@ -4,7 +4,7 @@
 image:
   registry: ghcr.io
   owner: ratneshvaibhav
-  tag: "4b71026c90b9eda1d6f778aef727215ea9825508"
+  tag: "749adc6f4550af30ec4b5db44b166c2f616ec5b7"
 backend:
   env:
     APP_ENV: development
