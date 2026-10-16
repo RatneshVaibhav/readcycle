@@ -1,0 +1,23 @@
+#CWD ~/readcycle
+$ kubectl config current-context; helm uninstall readcycle -n readcycle; kubectl get pvc -n readcycle --no-headers | awk "{print \"kept: \"\$1, \$2}"
+kind-readcycle
+release "readcycle" uninstalled
+kept: data-readcycle-postgres-0 Bound
+
+$ gitops/bootstrap.sh 2>&1 | grep -vE "^(W[0-9]{4}|level=)" | grep -E "namespace|secret|Release|STATUS|application|Argo CD now" | head -10
+namespace/readcycle unchanged
+Release "argocd" does not exist. Installing it now.
+STATUS: deployed
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+(You should delete the initial secret afterwards as suggested by the Getting Started Guide: https://argo-cd.readthedocs.io/en/stable/getting_started/#4-login-using-the-cli)
+application.argoproj.io/readcycle-dev created
+Argo CD now deploys helm/readcycle from https://github.com/RatneshVaibhav/readcycle (branch main)
+
+$ kubectl get pods -n argocd
+NAME                                READY   STATUS      RESTARTS   AGE
+argocd-application-controller-0     1/1     Running     0          14s
+argocd-redis-5887f96b6f-5cbpd       1/1     Running     0          14s
+argocd-redis-secret-init-6tz8c      0/1     Completed   0          48s
+argocd-repo-server-96bcff9d-8x8g5   1/1     Running     0          14s
+argocd-server-b655bd858-d5s54       1/1     Running     0          14s
+

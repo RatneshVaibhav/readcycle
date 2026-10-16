@@ -1,0 +1,32 @@
+#CWD ~/readcycle
+$ RUN=38845127046; gh run watch $RUN -R RatneshVaibhav/readcycle --exit-status --interval 20 > /dev/null; gh run view $RUN -R RatneshVaibhav/readcycle --json conclusion,jobs --jq "\"pipeline \(.conclusion)\", (.jobs[] | \"  \(.conclusion)  \(.name)\")"; date +"pipeline done at %T"
+pipeline success
+  success  Frontend build (Vite)
+  success  Backend tests (pytest)
+  success  SCA (pip-audit + npm audit + Trivy fs)
+  success  SAST (Bandit + Semgrep)
+  success  Secret scan (Gitleaks)
+  success  Docker build (backend + frontend)
+  success  Image scan (Trivy)
+  success  Security gate
+  success  Push images (tag = commit SHA)
+  success  Deploy test (kind + helm test)
+  success  Promote to dev (GitOps)
+pipeline done at 08:56:21
+
+$ git pull -q && git log --format="%h %an: %s" -2 && grep "tag:" gitops/environments/dev/values.yaml
+a47a45d github-actions[bot]: Deploy 75f4b23 to dev [skip ci]
+75f4b23 Ratnesh Vaibhav: Reword the tagline: pass textbooks on to the next batch
+  tag: "75f4b235e53b81a94d9bf2b17fb43376059e07a3"
+
+$ until [ "$(kubectl get application readcycle-dev -n argocd -o jsonpath="{.status.sync.revision}/{.status.health.status}")" = "$(git rev-parse HEAD)/Healthy" ] && curl -s http://readcycle.localhost:8088/api/version | grep -q "\"build\":\"75f4b23"; do sleep 5; done; date +"rolled out at %T"; argocd app get readcycle-dev | grep -E "^(Sync|Health) Status"
+rolled out at 08:57:34
+Sync Status:        Synced to main (a47a45d)
+Health Status:      Healthy
+
+$ kubectl get pods -n readcycle -l app.kubernetes.io/component=frontend -o custom-columns=POD:.metadata.name,IMAGE:.spec.containers[0].image; curl -s http://readcycle.localhost:8088/api/version; echo "   <- the commit pushed at 08:51:45"
+POD                                   IMAGE
+readcycle-frontend-5cc5f74b75-82mqf   ghcr.io/ratneshvaibhav/readcycle-frontend:75f4b235e53b81a94d9bf2b17fb43376059e07a3
+readcycle-frontend-5cc5f74b75-dmbgl   ghcr.io/ratneshvaibhav/readcycle-frontend:75f4b235e53b81a94d9bf2b17fb43376059e07a3
+{"version":"1.0.0","build":"75f4b235e53b"}   <- the commit pushed at 08:51:45
+

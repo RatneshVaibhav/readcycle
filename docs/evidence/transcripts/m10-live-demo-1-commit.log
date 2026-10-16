@@ -1,0 +1,16 @@
+#CWD ~/readcycle
+$ git log --oneline -1; curl -s http://readcycle.localhost:8088/api/version; echo "   <- what the cluster runs now"
+633220c Deploy 8796efe to dev [skip ci]
+{"version":"1.0.0","build":"8796efeb6062"}   <- what the cluster runs now
+
+$ sed -i "s|<p>Lend and reserve textbooks with students on your campus</p>|<p>Pass your textbooks on to the next batch on campus</p>|" frontend/src/App.jsx && git diff -U0 frontend/src/App.jsx | grep "^[-+] "
+-            <p>Lend and reserve textbooks with students on your campus</p>
++            <p>Pass your textbooks on to the next batch on campus</p>
+
+$ git commit -qam "Reword the tagline: pass textbooks on to the next batch" && git push -q origin main && git log --oneline -1 && date +"pushed at %T"
+75f4b23 Reword the tagline: pass textbooks on to the next batch
+pushed at 08:51:45
+
+$ sleep 6; gh run list -R RatneshVaibhav/readcycle -L 1
+in_progress		Reword the tagline: pass textbooks on to the next batch	ReadCycle CI/CD	main	push	38845127046	5s	2026-10-16T03:21:47Z
+

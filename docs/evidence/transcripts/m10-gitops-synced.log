@@ -1,0 +1,27 @@
+#CWD ~/readcycle
+$ export ARGOCD_OPTS="--server argocd.localhost:8088 --plaintext --grpc-web"; argocd app get readcycle-dev | sed -n "/^Server/,/^Health Status/p" | grep -vE "^(Server|Namespace|URL)"
+Source:
+- Repo:             https://github.com/RatneshVaibhav/readcycle.git
+  Target:           main
+  Path:             helm/readcycle
+  Helm Values:      ../../gitops/environments/dev/values.yaml
+SyncWindow:         Sync Allowed
+Sync Policy:        Automated (Prune)
+Sync Status:        Synced to main (8796efe)
+Health Status:      Healthy
+
+$ echo "GitHub main is at $(git ls-remote https://github.com/RatneshVaibhav/readcycle.git refs/heads/main | cut -c1-7); dev values want image tag $(curl -s https://raw.githubusercontent.com/RatneshVaibhav/readcycle/main/gitops/environments/dev/values.yaml | grep -oP "tag: \"\K[0-9a-f]{7}")"
+GitHub main is at 8796efe; dev values want image tag 306196a
+
+$ kubectl get pods -n readcycle -o custom-columns=POD:.metadata.name,READY:.status.containerStatuses[0].ready,IMAGE:.spec.containers[0].image
+POD                                   READY   IMAGE
+readcycle-backend-cc4bcf699-dqjl7     true    ghcr.io/ratneshvaibhav/readcycle-backend:306196a2d2bfb49ff2c27adc865ea0fb9210dfa8
+readcycle-backend-cc4bcf699-r52c9     true    ghcr.io/ratneshvaibhav/readcycle-backend:306196a2d2bfb49ff2c27adc865ea0fb9210dfa8
+readcycle-frontend-674fb89c7c-bw78z   true    ghcr.io/ratneshvaibhav/readcycle-frontend:306196a2d2bfb49ff2c27adc865ea0fb9210dfa8
+readcycle-frontend-674fb89c7c-wjxxs   true    ghcr.io/ratneshvaibhav/readcycle-frontend:306196a2d2bfb49ff2c27adc865ea0fb9210dfa8
+readcycle-postgres-0                  true    postgres:17-alpine
+
+$ curl -s http://readcycle.localhost:8088/api/version; echo; curl -s http://readcycle.localhost:8088/api/books/stats | jq -c "{total, by_status}"
+{"detail":"Not Found"}
+{"total":5,"by_status":{"available":3,"reserved":1,"exchanged":1}}
+
