@@ -95,7 +95,7 @@ export default function App() {
           <img src="/favicon.svg" alt="" width="36" height="36" />
           <div>
             <h1>ReadCycle</h1>
-            <p>Lend and reserve textbooks with students on your campus</p>
+            <p>Pass your textbooks on to the next batch on campus</p>
           </div>
         </div>
         <button className="primary" onClick={() => setShowForm(!showForm)}>
