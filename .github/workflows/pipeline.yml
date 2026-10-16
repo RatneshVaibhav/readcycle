@@ -14,10 +14,13 @@
 name: ReadCycle CI/CD
 
 on:
+  # commits that only change docs, evidence or the GitOps desired state are not code changes
   push:
     branches: [main]
+    paths-ignore: ["docs/**", "gitops/**", "**/*.md"]
   pull_request:
     branches: [main]
+    paths-ignore: ["docs/**", "gitops/**", "**/*.md"]
   workflow_dispatch:
 
 permissions:
@@ -38,10 +41,10 @@ jobs:
   # ------------------------------------------------------------ build & test
   backend-test:
     name: Backend tests (pytest)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install dependencies
@@ -49,7 +52,7 @@ jobs:
       - name: Run pytest (SQLite test database)
         working-directory: backend
         run: pytest -v --cov=app --cov-report=term --cov-report=xml:reports/coverage.xml --junitxml=reports/junit.xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-test-report
@@ -57,16 +60,16 @@ jobs:
 
   frontend-build:
     name: Frontend build (Vite)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
       - name: npm ci and build
         working-directory: frontend
         run: npm ci --no-audit --no-fund && npm run build && ls -la dist/assets
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: frontend/dist/
@@ -75,10 +78,10 @@ jobs:
   sast:
     name: SAST (Bandit + Semgrep)
     needs: [backend-test, frontend-build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install bandit==1.9.4 semgrep==1.179.0
@@ -92,7 +95,7 @@ jobs:
           semgrep scan --config p/python --config p/react --config security/semgrep-rules.yml --metrics off \
             --json -o reports/semgrep.json backend/app frontend/src
           jq -r '"semgrep: \(.results | length) findings in \(.paths.scanned | length) files"' reports/semgrep.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: security-sast
           path: reports/
@@ -100,13 +103,13 @@ jobs:
   sca:
     name: SCA (pip-audit + npm audit + Trivy fs)
     needs: [backend-test, frontend-build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
       - name: Install pinned, checksum-verified scanners
@@ -125,7 +128,7 @@ jobs:
         run: |
           trivy fs --config security/trivy.yaml --quiet --format json -o reports/trivy-fs.json .
           trivy fs --config security/trivy.yaml --quiet .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: security-sca
           path: reports/
@@ -133,9 +136,9 @@ jobs:
   secret-scan:
     name: Secret scan (Gitleaks)
     needs: [backend-test, frontend-build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install pinned, checksum-verified scanners
         run: bash security/install-tools.sh "$HOME/.local/bin" && echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Gitleaks
@@ -144,7 +147,7 @@ jobs:
           gitleaks dir . --config security/.gitleaks.toml --redact --no-banner \
             --report-format json --report-path reports/gitleaks.json --exit-code 0
           jq -r '"gitleaks: \(length) secrets found"' reports/gitleaks.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: security-secrets
           path: reports/
@@ -153,9 +156,9 @@ jobs:
   docker-build:
     name: Docker build (backend + frontend)
     needs: [sast, sca, secret-scan]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build both images
         run: |
           docker build --build-arg BUILD_SHA="$GITHUB_SHA" -t readcycle-backend:"$GITHUB_SHA" backend
@@ -167,7 +170,7 @@ jobs:
           docker save readcycle-backend:"$GITHUB_SHA" -o images/backend.tar
           docker save readcycle-frontend:"$GITHUB_SHA" -o images/frontend.tar
           ls -lh images
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: docker-images
           path: images/
@@ -176,10 +179,10 @@ jobs:
   image-scan:
     name: Image scan (Trivy)
     needs: docker-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: docker-images
           path: images
@@ -192,7 +195,7 @@ jobs:
             trivy image --config security/trivy.yaml --quiet --input images/$img.tar --format json -o reports/trivy-image-$img.json
             jq -r --arg i "$img" '"\($i) image: \([.Results[]?.Vulnerabilities[]?] | length) HIGH/CRITICAL (\(.Metadata.OS.Family) \(.Metadata.OS.Name))"' reports/trivy-image-$img.json
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: security-images
           path: reports/
@@ -200,10 +203,10 @@ jobs:
   security-gate:
     name: Security gate
     needs: [sast, sca, secret-scan, image-scan]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: security-*
           merge-multiple: true
@@ -220,12 +223,12 @@ jobs:
     name: Push images (tag = commit SHA)
     needs: security-gate
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: docker-images
           path: images
@@ -247,18 +250,18 @@ jobs:
     name: Deploy test (kind + helm test)
     needs: push
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Create a throw-away kind cluster
         uses: helm/kind-action@v1
         with:
           cluster_name: ci
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
       - name: Load the pushed images into the cluster
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
@@ -282,12 +285,12 @@ jobs:
     name: Promote to dev (GitOps)
     needs: deploy-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: dev
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
       - name: Commit the new image tag (Argo CD rolls it out)
