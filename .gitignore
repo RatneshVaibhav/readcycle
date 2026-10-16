@@ -16,6 +16,7 @@ kubeconfig*
 *.tfstate.*
 .terraform.tfstate.lock.info
 *.tfplan
+tfplan-*
 tfplan
 crash.log
 *.tfvars
