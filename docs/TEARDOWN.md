@@ -26,14 +26,23 @@ aws ec2 describe-nat-gateways --filter Name=state,Values=pending,available --que
 aws ec2 describe-volumes --query 'length(Volumes)'
 ```
 
-## AWS access key: delete it after grading
+## AWS access key: deleted on 16 October 2026
 
-The `readcycle-terraform` user exists only so Terraform could run. When grading is over:
+The `readcycle-terraform` user existed only so Terraform could run. Once the infrastructure was
+destroyed, its **access key and the user were deleted** in the AWS Console (AWS now answers
+`InvalidClientTokenId` for the old key), and the key was removed from the laptop's
+`~/.aws/credentials`. Nothing in the project needs it: the pipeline uses only GitHub's own token,
+and the live demo runs on the local cluster.
+
+To run Terraform against AWS again, create a new user with
+[`terraform/iam-policy-readcycle-terraform.json`](../terraform/iam-policy-readcycle-terraform.json)
+and a new access key, and type it in with `aws configure --profile readcycle`. To clean up by
+hand after a new run:
 
 1. AWS Console → **IAM** → **Users** → `readcycle-terraform` → **Security credentials** →
    **Access keys** → **Actions → Delete**.
 2. Delete the user: **Users** → select `readcycle-terraform` → **Delete**.
-3. Delete the policy: **Policies** → `readcycle-terraform` → **Delete**.
+3. Delete the policy: **Policies** → `readcycle-terraform` → **Delete** (optional; a policy on its own grants nothing).
 4. On the laptop, remove the local copy of the key: delete the `[readcycle]` section from
    `~/.aws/credentials`.
 
