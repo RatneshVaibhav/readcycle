@@ -8,26 +8,47 @@
       "Resource": "*"
     },
     {
-      "Sid": "NetworkAndClusterInMumbaiOnly",
+      "Sid": "NetworkAndClusterInAllowedRegionsOnly",
       "Effect": "Allow",
-      "Action": ["ec2:*", "eks:*"],
+      "Action": [
+        "ec2:*",
+        "eks:*"
+      ],
       "Resource": "*",
-      "Condition": { "StringEquals": { "aws:RequestedRegion": "ap-south-1" } }
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": [
+            "us-east-2",
+            "eu-north-1",
+            "ap-southeast-2"
+          ]
+        }
+      }
     },
     {
       "Sid": "OnlyThisProjectsRoles",
       "Effect": "Allow",
       "Action": [
-        "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:TagRole", "iam:UntagRole",
-        "iam:ListRoleTags", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
-        "iam:ListInstanceProfilesForRole", "iam:PassRole"
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:ListRoleTags",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
+        "iam:PassRole"
       ],
       "Resource": "arn:aws:iam::*:role/readcycle-*"
     },
     {
       "Sid": "AttachOnlyTheEksPolicies",
       "Effect": "Allow",
-      "Action": ["iam:AttachRolePolicy", "iam:DetachRolePolicy"],
+      "Action": [
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy"
+      ],
       "Resource": "arn:aws:iam::*:role/readcycle-*",
       "Condition": {
         "ArnEquals": {
@@ -48,14 +69,21 @@
       "Resource": "*",
       "Condition": {
         "StringEquals": {
-          "iam:AWSServiceName": ["eks.amazonaws.com", "eks-nodegroup.amazonaws.com", "autoscaling.amazonaws.com"]
+          "iam:AWSServiceName": [
+            "eks.amazonaws.com",
+            "eks-nodegroup.amazonaws.com",
+            "autoscaling.amazonaws.com"
+          ]
         }
       }
     },
     {
       "Sid": "ReadAwsManagedPolicies",
       "Effect": "Allow",
-      "Action": ["iam:GetPolicy", "iam:GetPolicyVersion"],
+      "Action": [
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion"
+      ],
       "Resource": "arn:aws:iam::aws:policy/*"
     }
   ]

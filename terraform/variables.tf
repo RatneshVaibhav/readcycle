@@ -1,7 +1,10 @@
 variable "aws_region" {
-  description = "Region for every resource (the course default is Mumbai)."
+  # Accounts created through AWS's new sign-up experience can use only one region, assigned
+  # by AWS (us-east-2, eu-north-1 or ap-southeast-2); an AWS-managed service control policy
+  # denies EC2 and EKS everywhere else, including the course default ap-south-1.
+  description = "Region for every resource: this account's AWS-assigned region (Sydney)."
   type        = string
-  default     = "ap-south-1"
+  default     = "ap-southeast-2"
 }
 
 variable "owner" {
@@ -29,7 +32,7 @@ variable "azs" {
 variable "cluster_version" {
   description = "Kubernetes version of the EKS control plane; must be in standard support (see eks.tf)."
   type        = string
-  default     = "1.34"
+  default     = "1.37" # standard support until December 2027; same version as the local kind cluster
 }
 
 variable "node_instance_types" {
