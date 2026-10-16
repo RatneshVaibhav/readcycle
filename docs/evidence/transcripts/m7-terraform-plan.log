@@ -1,0 +1,48 @@
+#CWD ~/readcycle
+$ cd terraform
+
+#CWD ~/readcycle/terraform
+$ terraform version | head -1; aws sts get-caller-identity --query Arn --output text | sed -E "s/[0-9]{12}/<account-id>/"; aws configure get region
+Terraform v1.16.5
+arn:aws:iam::<account-id>:user/readcycle-terraform
+ap-southeast-2
+
+$ terraform init -input=false -no-color | grep -E "Initializing|Using|successfully"
+Initializing the backend...
+Initializing provider plugins...
+- Using previously-installed hashicorp/aws v6.68.0
+Terraform has been successfully initialized!
+
+$ terraform fmt -check -recursive && terraform validate -no-color
+Success! The configuration is valid.
+
+
+$ terraform plan -input=false -no-color -out=tfplan > /tmp/plan.txt 2>&1; echo "terraform plan exit code: $?"; grep -E "^  # .* will be created" /tmp/plan.txt | sed -E "s/^  # //; s/ will be created//"; grep -E "^Plan:" /tmp/plan.txt
+terraform plan exit code: 0
+aws_eip.nat
+aws_eks_addon.ebs_csi
+aws_eks_addon.metrics_server
+aws_eks_cluster.main
+aws_eks_node_group.default
+aws_iam_role.cluster
+aws_iam_role.node
+aws_iam_role_policy_attachment.cluster
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"]
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"]
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"]
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"]
+aws_internet_gateway.main
+aws_nat_gateway.main
+aws_route_table.private
+aws_route_table.public
+aws_route_table_association.private["a"]
+aws_route_table_association.private["b"]
+aws_route_table_association.public["a"]
+aws_route_table_association.public["b"]
+aws_subnet.private["a"]
+aws_subnet.private["b"]
+aws_subnet.public["a"]
+aws_subnet.public["b"]
+aws_vpc.main
+Plan: 25 to add, 0 to change, 0 to destroy.
+
