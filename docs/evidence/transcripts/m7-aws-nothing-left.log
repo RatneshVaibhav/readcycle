@@ -1,0 +1,19 @@
+#CWD ~/readcycle
+$ aws configure get region; aws eks list-clusters --query "clusters" --output text | wc -w | sed "s/^/EKS clusters: /"
+ap-southeast-2
+EKS clusters: 0
+
+$ echo "VPCs tagged Project=readcycle: $(aws ec2 describe-vpcs --filters Name=tag:Project,Values=readcycle --query "length(Vpcs)")"; echo "NAT gateways not deleted: $(aws ec2 describe-nat-gateways --filter Name=state,Values=pending,available,deleting --query "length(NatGateways)")"; echo "Elastic IPs: $(aws ec2 describe-addresses --query "length(Addresses)")"
+VPCs tagged Project=readcycle: 0
+NAT gateways not deleted: 0
+Elastic IPs: 0
+
+$ echo "EC2 instances not terminated: $(aws ec2 describe-instances --filters Name=instance-state-name,Values=pending,running,stopping,stopped --query "length(Reservations[].Instances[])")"; echo "EBS volumes: $(aws ec2 describe-volumes --query "length(Volumes)")"
+EC2 instances not terminated: 0
+EBS volumes: 0
+
+$ for r in readcycle-eks-cluster readcycle-eks-node readcycle-ebs-csi; do printf "IAM role %-22s " $r; aws iam get-role --role-name $r 2>&1 | grep -oE "NoSuchEntity|\"RoleName\"" | head -1; done
+IAM role readcycle-eks-cluster  NoSuchEntity
+IAM role readcycle-eks-node     NoSuchEntity
+IAM role readcycle-ebs-csi      NoSuchEntity
+

@@ -1,0 +1,76 @@
+#CWD ~/readcycle
+$ export KUBECONFIG=$HOME/.kube/readcycle-eks.yaml; aws eks describe-nodegroup --cluster-name readcycle-eks --nodegroup-name readcycle-default --query "nodegroup.{name:nodegroupName,status:status,instanceTypes:instanceTypes,amiType:amiType,scaling:scalingConfig,subnets:length(subnets)}" --output json
+{
+    "name": "readcycle-default",
+    "status": "ACTIVE",
+    "instanceTypes": [
+        "m7i-flex.large"
+    ],
+    "amiType": "AL2023_x86_64_STANDARD",
+    "scaling": {
+        "minSize": 1,
+        "maxSize": 2,
+        "desiredSize": 1
+    },
+    "subnets": 2
+}
+
+$ helm uninstall readcycle -n readcycle; helm uninstall kps -n monitoring; helm uninstall ingress-nginx -n ingress-nginx
+release "readcycle" uninstalled
+release "kps" uninstalled
+release "ingress-nginx" uninstalled
+
+$ kubectl get pvc -A --no-headers | awk "{print \$1\"/\"\$2, \$4}"; kubectl delete pvc --all -n readcycle; kubectl delete pvc --all -n monitoring
+monitoring/prometheus-kps-prometheus-db-prometheus-kps-prometheus-0 pvc-5312d91b-6c50-4526-92bf-2fac55b9c7d2
+readcycle/data-readcycle-postgres-0 pvc-03c9fd81-f600-411e-8d9a-7fcd4dac2c7a
+persistentvolumeclaim "data-readcycle-postgres-0" deleted from readcycle namespace
+persistentvolumeclaim "prometheus-kps-prometheus-db-prometheus-kps-prometheus-0" deleted from monitoring namespace
+
+$ until [ "$(aws ec2 describe-volumes --filters Name=tag-key,Values=kubernetes.io/created-for/pvc/name --query "length(Volumes)")" = 0 ]; do sleep 5; done; echo "EBS volumes created for PVCs: $(aws ec2 describe-volumes --filters Name=tag-key,Values=kubernetes.io/created-for/pvc/name --query "length(Volumes)") (all deleted)"
+EBS volumes created for PVCs: 0 (all deleted)
+
+$ terraform plan -destroy -input=false -no-color -out=destroy.tfplan 2>&1 | grep -E "will be destroyed$|^Plan:" | sed -E "s/^  # //; s/ will be destroyed//"
+aws_eip.nat
+aws_eks_addon.ebs_csi
+aws_eks_addon.metrics_server
+aws_eks_addon.pod_identity_agent
+aws_eks_cluster.main
+aws_eks_node_group.default
+aws_iam_role.cluster
+aws_iam_role.ebs_csi
+aws_iam_role.node
+aws_iam_role_policy_attachment.cluster
+aws_iam_role_policy_attachment.ebs_csi
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"]
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"]
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"]
+aws_internet_gateway.main
+aws_nat_gateway.main
+aws_route_table.private
+aws_route_table.public
+aws_route_table_association.private["a"]
+aws_route_table_association.private["b"]
+aws_route_table_association.public["a"]
+aws_route_table_association.public["b"]
+aws_subnet.private["a"]
+aws_subnet.private["b"]
+aws_subnet.public["a"]
+aws_subnet.public["b"]
+aws_vpc.main
+Plan: 0 to add, 0 to change, 27 to destroy.
+
+$ date +"destroy started %T"; terraform apply -input=false -no-color destroy.tfplan 2>&1 | grep -E "Destruction complete|Apply complete|Destroy complete|Error" | sed -E "s/ \[id=[^]]*\]//" | tail -8; date +"destroy done at %T"
+destroy started 08:01:27
+aws_iam_role_policy_attachment.cluster: Destruction complete after 1s
+aws_iam_role.cluster: Destruction complete after 1s
+aws_subnet.private["b"]: Destruction complete after 3s
+aws_subnet.public["a"]: Destruction complete after 3s
+aws_subnet.private["a"]: Destruction complete after 3s
+aws_subnet.public["b"]: Destruction complete after 3s
+aws_vpc.main: Destruction complete after 1s
+Apply complete! Resources: 0 added, 0 changed, 27 destroyed.
+destroy done at 08:13:06
+
+$ terraform state list | wc -l | sed "s/^/resources left in Terraform state: /"
+resources left in Terraform state: 0
+
