@@ -9,5 +9,3 @@ backend:
   env:
     APP_ENV: development
     LOG_LEVEL: INFO
-database:
-  user: readcycle_app
