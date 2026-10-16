@@ -1,0 +1,54 @@
+#CWD ~/readcycle
+$ cd terraform
+
+#CWD ~/readcycle/terraform
+$ echo "first apply: VPC, subnets, NAT, IAM roles and the EKS control plane created; the node group failed (EKS could not iam:GetRole its service-linked role AWSServiceRoleForAmazonEKSNodegroup). Fix: the Terraform user may now read aws-service-role/* roles."
+first apply: VPC, subnets, NAT, IAM roles and the EKS control plane created; the node group failed (EKS could not iam:GetRole its service-linked role AWSServiceRoleForAmazonEKSNodegroup). Fix: the Terraform user may now read aws-service-role/* roles.
+
+$ terraform plan -input=false -no-color -out=tfplan-remaining 2>&1 | grep -E "^  # |^Plan:"
+  # aws_eks_addon.ebs_csi will be created
+  # aws_eks_addon.metrics_server will be created
+  # aws_eks_node_group.default will be created
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+$ date +"apply started %T"; terraform apply -input=false -no-color tfplan-remaining 2>&1 | grep -E "Creation complete|Apply complete|Error" | sed -E "s/ \[id=[^]]*\]//"; date +"apply finished %T"
+apply started 07:20:51
+Error: creating EKS Node Group (readcycle-eks:readcycle-default): operation error EKS: CreateNodegroup, https response error StatusCode: 400, RequestID: 2b44011b-ec43-40e6-872a-93c6afd2162e, InvalidRequestException: Failed to validate if SLR: AWSServiceRoleForAmazonEKSNodegroup already exists due to missing permissions for 'iam:GetRole'
+apply finished 07:20:58
+
+$ terraform output -no-color
+cluster_endpoint = "https://1599537539181F124393E19F854E9049.gr7.ap-southeast-2.eks.amazonaws.com"
+cluster_name = "readcycle-eks"
+cluster_version = "1.37"
+kubeconfig_command = "aws eks update-kubeconfig --region ap-southeast-2 --name readcycle-eks"
+nat_gateway_public_ip = "52.62.79.34"
+private_subnet_ids = [
+  "subnet-08c57d79b0c43fd5a",
+  "subnet-0dfc898a055add913",
+]
+public_subnet_ids = [
+  "subnet-0eacaf33e7d151357",
+  "subnet-063fb6817924bbd02",
+]
+vpc_id = "vpc-0526c721a2fbad3a4"
+
+$ aws iam get-role --role-name AWSServiceRoleForAmazonEKSNodegroup 2>&1 | grep -o "not authorized to perform: iam:GetRole on resource: role AWSServiceRoleForAmazonEKSNodegroup because no identity-based policy allows"; echo "^ the role does not exist yet, so IAM checks the path-less name, which the aws-service-role/* rule does not match"
+not authorized to perform: iam:GetRole on resource: role AWSServiceRoleForAmazonEKSNodegroup because no identity-based policy allows
+^ the role does not exist yet, so IAM checks the path-less name, which the aws-service-role/* rule does not match
+
+$ aws iam create-service-linked-role --aws-service-name eks-nodegroup.amazonaws.com --query "Role.[RoleName,Path]" --output text
+AWSServiceRoleForAmazonEKSNodegroup	/aws-service-role/eks-nodegroup.amazonaws.com/
+
+$ terraform plan -input=false -no-color -out=tfplan-remaining 2>&1 | grep -E "^  # |^Plan:"
+  # aws_eks_addon.ebs_csi will be created
+  # aws_eks_addon.metrics_server will be created
+  # aws_eks_node_group.default will be created
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+$ date +"apply started %T"; terraform apply -input=false -no-color tfplan-remaining 2>&1 | grep -E "Creation complete|Apply complete|Error" | sed -E "s/ \[id=[^]]*\]//"; date +"apply finished %T"
+apply started 07:22:03
+aws_eks_node_group.default: Creation complete after 1m24s
+aws_eks_addon.metrics_server: Creation complete after 39s
+Error: waiting for EKS Add-On (readcycle-eks:aws-ebs-csi-driver) create: timeout while waiting for state to become 'ACTIVE' (last state: 'CREATING', timeout: 20m0s): operation error EKS: DescribeAddon, context deadline exceeded
+apply finished 07:43:35
+

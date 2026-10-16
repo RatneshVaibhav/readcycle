@@ -1,0 +1,47 @@
+#CWD ~/readcycle
+$ cd terraform
+
+#CWD ~/readcycle/terraform
+$ date +"apply started %T"; terraform apply -input=false -no-color tfplan 2>&1 | grep -E "Creation complete|Apply complete|Error|error|Warning" | sed -E "s/ \[id=[^]]*\]//"; date +"apply finished %T"
+apply started 06:51:51
+aws_iam_role.node: Creation complete after 2s
+aws_iam_role.cluster: Creation complete after 2s
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"]: Creation complete after 1s
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"]: Creation complete after 1s
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"]: Creation complete after 1s
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"]: Creation complete after 1s
+aws_iam_role_policy_attachment.cluster: Creation complete after 1s
+aws_eip.nat: Creation complete after 3s
+aws_vpc.main: Creation complete after 7s
+aws_subnet.private["b"]: Creation complete after 2s
+aws_internet_gateway.main: Creation complete after 2s
+aws_subnet.private["a"]: Creation complete after 3s
+aws_route_table.public: Creation complete after 4s
+aws_subnet.public["a"]: Creation complete after 13s
+aws_subnet.public["b"]: Creation complete after 13s
+aws_route_table_association.public["b"]: Creation complete after 1s
+aws_route_table_association.public["a"]: Creation complete after 2s
+aws_nat_gateway.main: Creation complete after 1m51s
+aws_route_table.private: Creation complete after 3s
+aws_route_table_association.private["b"]: Creation complete after 2s
+aws_route_table_association.private["a"]: Creation complete after 2s
+aws_eks_cluster.main: Creation complete after 9m18s
+Error: creating EKS Node Group (readcycle-eks:readcycle-default): operation error EKS: CreateNodegroup, https response error StatusCode: 400, RequestID: e7943011-df7a-488b-bab0-3e33569c1ec6, InvalidRequestException: Failed to validate if SLR: AWSServiceRoleForAmazonEKSNodegroup already exists due to missing permissions for 'iam:GetRole'
+apply finished 07:01:37
+
+$ terraform output -no-color | grep -vE "^\s*$"
+cluster_endpoint = "https://1599537539181F124393E19F854E9049.gr7.ap-southeast-2.eks.amazonaws.com"
+cluster_name = "readcycle-eks"
+cluster_version = "1.37"
+kubeconfig_command = "aws eks update-kubeconfig --region ap-southeast-2 --name readcycle-eks"
+nat_gateway_public_ip = "52.62.79.34"
+private_subnet_ids = [
+  "subnet-08c57d79b0c43fd5a",
+  "subnet-0dfc898a055add913",
+]
+public_subnet_ids = [
+  "subnet-0eacaf33e7d151357",
+  "subnet-063fb6817924bbd02",
+]
+vpc_id = "vpc-0526c721a2fbad3a4"
+

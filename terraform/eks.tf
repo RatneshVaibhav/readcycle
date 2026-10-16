@@ -54,12 +54,27 @@ resource "aws_eks_node_group" "default" {
   ]
 }
 
-# EBS volumes for PersistentVolumeClaims (PostgreSQL, Prometheus); the driver uses the node
-# role's AmazonEBSCSIDriverPolicy. k8s/storageclass-gp3.yaml makes gp3 the default class.
+# EKS Pod Identity: gives a pod's service account its own short-lived AWS credentials.
+# Amazon Linux 2023 nodes keep pods away from the instance metadata service (hop limit 1),
+# so pods cannot borrow the node role's credentials - and should not.
+resource "aws_eks_addon" "pod_identity_agent" {
+  cluster_name = aws_eks_cluster.main.name
+  addon_name   = "eks-pod-identity-agent"
+  depends_on   = [aws_eks_node_group.default]
+}
+
+# EBS volumes for PersistentVolumeClaims (PostgreSQL, Prometheus), with the driver's own IAM
+# role (iam.tf) bound to its service account. k8s/storageclass-gp3.yaml makes gp3 the default.
 resource "aws_eks_addon" "ebs_csi" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "aws-ebs-csi-driver"
-  depends_on   = [aws_eks_node_group.default]
+
+  pod_identity_association {
+    role_arn        = aws_iam_role.ebs_csi.arn
+    service_account = "ebs-csi-controller-sa"
+  }
+
+  depends_on = [aws_eks_addon.pod_identity_agent]
 }
 
 # CPU and memory metrics for the HorizontalPodAutoscaler and `kubectl top`

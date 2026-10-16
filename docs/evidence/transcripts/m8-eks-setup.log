@@ -1,0 +1,40 @@
+#CWD ~/readcycle
+$ export KUBECONFIG=$HOME/.kube/readcycle-eks.yaml; kubectl config current-context; kubectl get nodes -L node.kubernetes.io/instance-type,topology.kubernetes.io/zone,eks.amazonaws.com/nodegroup
+readcycle-eks
+NAME                                              STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE    ZONE              NODEGROUP
+ip-10-40-12-135.ap-southeast-2.compute.internal   Ready    <none>   22m   v1.37.0-eks-b9510e3   m7i-flex.large   ap-southeast-2b   readcycle-default
+
+$ kubectl apply -f k8s/storageclass-gp3.yaml && kubectl get storageclass
+storageclass.storage.k8s.io/gp3 created
+NAME            PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+gp2             kubernetes.io/aws-ebs   Delete          WaitForFirstConsumer   false                  48m
+gp3 (default)   ebs.csi.aws.com         Delete          WaitForFirstConsumer   true                   2s
+
+$ kubectl apply -f k8s/namespace.yaml && kubectl create secret generic readcycle-db -n readcycle --from-literal=password="$(openssl rand -hex 16)"
+namespace/readcycle created
+secret/readcycle-db created
+
+$ helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --version 4.15.1 -n ingress-nginx --create-namespace --set controller.service.type=ClusterIP --wait --timeout 10m | head -6; kubectl get svc -n ingress-nginx ingress-nginx-controller
+Release "ingress-nginx" does not exist. Installing it now.
+NAME: ingress-nginx
+LAST DEPLOYED: Fri Oct 16 07:46:19 2026
+NAMESPACE: ingress-nginx
+STATUS: deployed
+REVISION: 1
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+ingress-nginx-controller   ClusterIP   172.20.121.180   <none>        80/TCP,443/TCP   69s
+
+$ monitoring/install.sh 2>&1 | grep -vE "^(W[0-9]{4}|level=)" | grep -E "^(Release|NAME|STATUS|REVISION|[a-z].*(Running|Init|Pending|Creating))" | head -14
+Release "kps" does not exist. Installing it now.
+NAME: kps
+NAMESPACE: monitoring
+STATUS: deployed
+REVISION: 1
+NAME                                      READY   STATUS    RESTARTS   AGE
+alertmanager-kps-alertmanager-0           2/2     Running   0          92s
+kps-grafana-76945667c9-n8n9q              3/3     Running   0          98s
+kps-kube-state-metrics-785f74f8db-6496l   1/1     Running   0          98s
+kps-operator-65fbff976c-td7nj             1/1     Running   0          98s
+kps-prometheus-node-exporter-ck527        1/1     Running   0          99s
+prometheus-kps-prometheus-0               2/2     Running   0          92s
+

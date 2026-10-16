@@ -1,0 +1,35 @@
+#CWD ~/readcycle
+$ export KUBECONFIG=$HOME/.kube/readcycle-eks.yaml; kubectl get pods -n kube-system -l app=ebs-csi-controller --no-headers | head -2
+ebs-csi-controller-645df5ccc6-24qr5   1/6   CrashLoopBackOff   39 (2m34s ago)   20m
+ebs-csi-controller-645df5ccc6-g6vg4   1/6   CrashLoopBackOff   39 (2m56s ago)   20m
+
+$ kubectl logs -n kube-system deploy/ebs-csi-controller -c ebs-plugin --tail=1 2>&1 | grep -o "get identity: .*"
+get identity: get credentials: failed to refresh cached credentials, no EC2 IMDS role found, operation error ec2imds: GetMetadata, request canceled, context deadline exceeded"
+
+$ cd terraform && terraform plan -input=false -no-color -out=tfplan-ebs 2>&1 | grep -E "^  # |^Plan:"
+  # aws_eks_addon.ebs_csi is tainted, so must be replaced
+  # aws_eks_addon.pod_identity_agent will be created
+  # aws_iam_role.ebs_csi will be created
+  # aws_iam_role_policy_attachment.ebs_csi will be created
+  # aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"] will be destroyed
+  # (because key ["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"] is not in for_each map)
+Plan: 4 to add, 0 to change, 2 to destroy.
+
+#CWD ~/readcycle/terraform
+$ date +"apply started %T"; terraform apply -input=false -no-color tfplan-ebs 2>&1 | grep -E "complete|Error" | sed -E "s/ \[id=[^]]*\]//"; date +"apply done at %T"
+apply started 07:44:16
+aws_eks_addon.ebs_csi: Destruction complete after 10s
+aws_iam_role_policy_attachment.node["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"]: Destruction complete after 1s
+aws_iam_role.ebs_csi: Creation complete after 1s
+aws_iam_role_policy_attachment.ebs_csi: Creation complete after 1s
+aws_eks_addon.pod_identity_agent: Creation complete after 17s
+aws_eks_addon.ebs_csi: Creation complete after 40s
+Apply complete! Resources: 4 added, 0 changed, 2 destroyed.
+apply done at 07:45:31
+
+$ export KUBECONFIG=$HOME/.kube/readcycle-eks.yaml; kubectl get pods -n kube-system -l app=ebs-csi-controller; aws eks describe-addon --cluster-name readcycle-eks --addon-name aws-ebs-csi-driver --query "addon.[addonName,status,addonVersion]" --output text
+NAME                                  READY   STATUS    RESTARTS   AGE
+ebs-csi-controller-557b584d79-kl2zl   6/6     Running   0          36s
+ebs-csi-controller-557b584d79-zgj79   6/6     Running   0          36s
+aws-ebs-csi-driver	ACTIVE	v1.67.0-eksbuild.1
+

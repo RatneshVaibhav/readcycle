@@ -78,6 +78,12 @@
       }
     },
     {
+      "Sid": "CheckServiceLinkedRoles",
+      "Effect": "Allow",
+      "Action": "iam:GetRole",
+      "Resource": "arn:aws:iam::*:role/aws-service-role/*"
+    },
+    {
       "Sid": "ReadAwsManagedPolicies",
       "Effect": "Allow",
       "Action": [

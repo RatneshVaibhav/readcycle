@@ -1,0 +1,48 @@
+#CWD ~/readcycle
+$ export KUBECONFIG=$HOME/.kube/readcycle-eks.yaml; kubectl config current-context
+readcycle-eks
+
+$ TAG=$(grep -oP "tag: \"\K[0-9a-f]{40}" gitops/environments/dev/values.yaml); echo "image tag = commit $TAG"; helm upgrade --install readcycle helm/readcycle -n readcycle --set image.tag=$TAG --wait --timeout 10m | head -6
+image tag = commit b35a9a31d27cef18056d434ab087fe7f5ec4de5b
+I1016 07:53:18.985617   49012 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"postgres\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"postgres\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"postgres\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"postgres\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+Release "readcycle" does not exist. Installing it now.
+NAME: readcycle
+LAST DEPLOYED: Fri Oct 16 07:53:09 2026
+NAMESPACE: readcycle
+STATUS: deployed
+REVISION: 1
+
+$ helm list -n readcycle
+NAME     	NAMESPACE	REVISION	UPDATED                               	STATUS  	CHART          	APP VERSION
+readcycle	readcycle	1       	2026-10-16 07:53:09.32753349 +0530 IST	deployed	readcycle-1.0.2	1.0.0      
+
+$ kubectl get pods -n readcycle -o wide | cut -c1-140
+NAME                                  READY   STATUS    RESTARTS   AGE   IP             NODE                                              NO
+readcycle-backend-7fc4d48d95-l4s88    1/1     Running   0          44s   10.40.12.175   ip-10-40-12-135.ap-southeast-2.compute.internal   <n
+readcycle-backend-7fc4d48d95-zkfdp    1/1     Running   0          45s   10.40.12.240   ip-10-40-12-135.ap-southeast-2.compute.internal   <n
+readcycle-frontend-5f88bf4599-k9f4f   1/1     Running   0          45s   10.40.12.195   ip-10-40-12-135.ap-southeast-2.compute.internal   <n
+readcycle-frontend-5f88bf4599-t4xs4   1/1     Running   0          45s   10.40.12.59    ip-10-40-12-135.ap-southeast-2.compute.internal   <n
+readcycle-postgres-0                  1/1     Running   0          44s   10.40.12.99    ip-10-40-12-135.ap-southeast-2.compute.internal   <n
+
+$ kubectl get svc -n readcycle
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+readcycle-backend    ClusterIP   172.20.139.82   <none>        8000/TCP   47s
+readcycle-frontend   ClusterIP   172.20.212.30   <none>        80/TCP     47s
+readcycle-postgres   ClusterIP   None            <none>        5432/TCP   47s
+
+$ kubectl get ingress,hpa,pvc -n readcycle
+NAME                                  CLASS   HOSTS                 ADDRESS          PORTS   AGE
+ingress.networking.k8s.io/readcycle   nginx   readcycle.localhost   172.20.121.180   80      48s
+
+NAME                                                    REFERENCE                      TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/readcycle-backend   Deployment/readcycle-backend   cpu: <unknown>/70%   2         4         2          50s
+
+NAME                                              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-readcycle-postgres-0   Bound    pvc-03c9fd81-f600-411e-8d9a-7fcd4dac2c7a   1Gi        RWO            gp3            <unset>                 50s
+
+$ helm test readcycle -n readcycle | sed -n "/TEST SUITE/,\$p"
+TEST SUITE:     readcycle-test-api
+Last Started:   Fri Oct 16 07:54:13 2026
+Last Completed: Fri Oct 16 07:54:20 2026
+Phase:          Succeeded
+
